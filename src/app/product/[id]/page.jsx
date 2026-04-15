@@ -103,7 +103,7 @@ export default function ProductDetailPage() {
   const deliveryDateStr = deliveryDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 
   return (
-    <div style={{ background: '#f1f3f6', minHeight: '100vh', paddingBottom: 70 }}>
+    <div style={{ background: '#f1f3f6', minHeight: '100vh', paddingBottom: 80 }}>
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: '8px' }}>
         {/* Breadcrumb */}
         <div style={{ fontSize: 12, color: '#878787', padding: '8px 4px', marginBottom: 4 }}>
@@ -120,11 +120,12 @@ export default function ProductDetailPage() {
 
         {/* Main Product Section */}
         <div style={{ display: 'flex', gap: 0, alignItems: 'flex-start' }}>
-          {/* Left Column: Images (sticky) */}
-          <div style={{ width: 420, flexShrink: 0, position: 'sticky', top: 72, alignSelf: 'flex-start' }}>
+
+          {/* ── Left Column: Images (sticky) ── */}
+          <div style={{ width: 460, flexShrink: 0, position: 'sticky', top: 72, alignSelf: 'flex-start' }}>
             <div style={{ background: '#fff', border: '1px solid #f0f0f0' }}>
               {/* Thumbnails on left + Main image */}
-              <div style={{ display: 'flex', padding: '16px 8px' }}>
+              <div style={{ display: 'flex', padding: '12px 8px' }}>
                 {/* Thumbnail Column */}
                 <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4, marginRight: 8 }}>
                   {images.map((img, i) => (
@@ -145,35 +146,48 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Main Image */}
-                <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 350 }}>
+                <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 380 }}>
                   <img
                     src={images[selectedImage]}
                     alt={product.name}
-                    style={{ maxWidth: '100%', maxHeight: 350, objectFit: 'contain' }}
+                    style={{ maxWidth: '100%', maxHeight: 380, objectFit: 'contain' }}
                     onError={e => { e.target.src = 'https://placehold.co/400x400/f1f3f6/878787?text=No+Image'; }}
                   />
-                  {/* Wishlist */}
-                  <button onClick={toggleWishlist}
-                    style={{
-                      position: 'absolute', top: 4, right: 4, width: 36, height: 36, borderRadius: '50%',
+                  {/* Wishlist + Share icons */}
+                  <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 8 }}>
+                    <button onClick={toggleWishlist}
+                      style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        border: '1px solid #e0e0e0', background: '#fff', cursor: 'pointer', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.1)',
+                      }}>
+                      <span style={{ fontSize: 18, color: inWishlist ? '#ff4081' : '#c2c2c2' }}>{inWishlist ? '♥' : '♡'}</span>
+                    </button>
+                    <button style={{
+                      width: 36, height: 36, borderRadius: '50%',
                       border: '1px solid #e0e0e0', background: '#fff', cursor: 'pointer', display: 'flex',
                       alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.1)',
-                    }}
-                  >
-                    <span style={{ fontSize: 18, color: inWishlist ? '#ff4081' : '#c2c2c2' }}>{inWishlist ? '♥' : '♡'}</span>
-                  </button>
+                    }}>
+                      <span style={{ fontSize: 16 }}>📤</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Product Details */}
+          {/* ── Right Column: Product Details ── */}
           <div style={{ flex: 1, paddingLeft: 16, minWidth: 0 }}>
             {/* Title & Rating Section */}
             <div style={{ background: '#fff', padding: '20px 24px', border: '1px solid #f0f0f0', marginBottom: 0 }}>
+              {/* Brand / Sponsor */}
               {product.brand && (
-                <p style={{ fontSize: 14, color: '#878787', marginBottom: 4 }}>{product.brand}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#212121' }}>{product.brand}</span>
+                  <span style={{ fontSize: 11, color: '#878787' }}>Store</span>
+                </div>
               )}
+
               <h1 style={{ fontSize: 18, fontWeight: 400, color: '#212121', lineHeight: 1.4, marginBottom: 12 }} id="product-title">
                 {product.name}
               </h1>
@@ -191,26 +205,54 @@ export default function ProductDetailPage() {
                 <span style={{ fontSize: 13, color: '#878787', fontWeight: 500 }}>
                   {product.review_count?.toLocaleString()} Ratings & Reviews
                 </span>
+                {/* Assured badge */}
+                <span style={{ background: '#2874f0', color: '#fff', fontSize: 9, padding: '2px 6px', borderRadius: 2, fontWeight: 800, letterSpacing: 0.5, marginLeft: 4 }}>
+                  ✓ Assured
+                </span>
               </div>
+
+              {/* Hot Deal Tag */}
+              {discountPercent >= 30 && (
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ background: '#26a541', color: '#fff', fontSize: 12, fontWeight: 700, padding: '3px 8px', borderRadius: 3 }}>Hot Deal</span>
+                </div>
+              )}
 
               {/* Price Section */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-                <span style={{ fontSize: 28, fontWeight: 700, color: '#212121' }}>{formatPrice(product.price)}</span>
-                {parseFloat(product.mrp) > parseFloat(product.price) && (
-                  <>
-                    <span style={{ fontSize: 16, color: '#878787', textDecoration: 'line-through' }}>{formatPrice(product.mrp)}</span>
-                    <span style={{ fontSize: 16, color: '#388e3c', fontWeight: 600 }}>{discountPercent}% off</span>
-                  </>
+                {discountPercent > 0 && (
+                  <span style={{ fontSize: 16, color: '#388e3c', fontWeight: 600 }}>↓{discountPercent}%</span>
                 )}
+                {parseFloat(product.mrp) > parseFloat(product.price) && (
+                  <span style={{ fontSize: 16, color: '#878787', textDecoration: 'line-through' }}>{formatPrice(product.mrp)}</span>
+                )}
+                <span style={{ fontSize: 28, fontWeight: 700, color: '#212121' }}>{formatPrice(product.price)}</span>
               </div>
-              <p style={{ fontSize: 12, color: '#878787', marginBottom: 4 }}>inclusive of all taxes</p>
 
-              {/* EMI info */}
+              {/* WOW DEAL banner - matching Flipkart's dark blue-green CTA */}
+              <div style={{
+                background: 'linear-gradient(90deg, #1a3a4a, #2a5a52)', borderRadius: 8,
+                padding: '12px 16px', marginTop: 12, marginBottom: 16, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ background: '#ffe500', color: '#1a3a4a', fontSize: 10, fontWeight: 900, padding: '2px 6px', borderRadius: 3 }}>WOW!</span>
+                  <span style={{ background: '#ffe500', color: '#1a3a4a', fontSize: 10, fontWeight: 900, padding: '2px 6px', borderRadius: 3 }}>DEAL</span>
+                  <span style={{ color: '#fff', fontSize: 15, fontWeight: 700, marginLeft: 4 }}>Buy at {formatPrice(Math.round(parseFloat(product.price) * 0.65))}</span>
+                </div>
+                <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+
+              <p style={{ fontSize: 13, color: '#2874f0', cursor: 'pointer', marginBottom: 8 }}>Apply offers for maximum savings!</p>
+
+              {/* Apply for Card and EMI */}
               {parseFloat(product.price) >= 3000 && (
-                <p style={{ fontSize: 13, color: '#212121', marginTop: 8 }}>
-                  Or Pay <span style={{ fontWeight: 600 }}>{formatPrice(Math.round(parseFloat(product.price) / 12))}</span>/month
-                  <span style={{ color: '#878787' }}> • No Cost EMI available</span>
-                </p>
+                <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#212121' }}>Apply for Card and Instant EMI</span>
+                    <svg width="14" height="14" fill="none" stroke="#212121" strokeWidth="2" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -246,7 +288,7 @@ export default function ProductDetailPage() {
                 <span style={{ fontSize: 16 }}>🏪</span>
                 <div>
                   <span style={{ fontSize: 13, color: '#212121' }}>Sold by </span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#2874f0' }}>{product.brand || 'Flipkart'}Store</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#2874f0' }}>{product.brand || 'Flipkart'} Store</span>
                 </div>
               </div>
             </div>
@@ -316,31 +358,30 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      {/* Sticky Bottom Bar - Flipkart style */}
+      {/* ── Sticky Bottom Bar — exact Flipkart match ── */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff',
-        borderTop: '1px solid #e0e0e0', boxShadow: '0 -2px 10px rgba(0,0,0,.08)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '10px 24px', zIndex: 50,
+        borderTop: '1px solid #e0e0e0', boxShadow: '0 -2px 10px rgba(0,0,0,.06)',
+        zIndex: 50,
       }}>
-        <div style={{ maxWidth: 1300, width: '100%', display: 'flex', margin: '0 auto', gap: 16, justifyContent: 'center' }}>
+        <div style={{ maxWidth: 1300, margin: '0 auto', display: 'flex', padding: '10px 16px', gap: 12, alignItems: 'center' }}>
           {/* Add to Cart */}
           <button
             id="add-to-cart-btn"
             onClick={addedToCart ? () => router.push('/cart') : handleAddToCart}
             disabled={addingToCart || product.stock <= 0}
             style={{
-              minWidth: 220, padding: '14px 40px',
+              flex: 1, padding: '14px 0',
               border: '1px solid #c2c2c2',
               borderRadius: 8,
               cursor: product.stock <= 0 ? 'not-allowed' : 'pointer',
-              background: '#fff', color: '#212121', fontSize: 16, fontWeight: 700,
+              background: '#fff', color: '#212121', fontSize: 16, fontWeight: 600,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               opacity: product.stock <= 0 ? 0.5 : 1,
               transition: 'all .15s',
             }}
           >
-            {product.stock <= 0 ? 'Out of Stock' : addingToCart ? 'Adding...' : addedToCart ? 'Go to cart' : 'Add to cart'}
+            🛒 {product.stock <= 0 ? 'Out of Stock' : addingToCart ? 'Adding...' : addedToCart ? 'Go to cart' : 'Add to cart'}
           </button>
 
           {/* Buy at ₹X */}
@@ -349,7 +390,7 @@ export default function ProductDetailPage() {
             onClick={handleBuyNow}
             disabled={product.stock <= 0}
             style={{
-              minWidth: 220, padding: '14px 40px',
+              flex: 1, padding: '14px 0',
               border: 'none',
               borderRadius: 8,
               cursor: product.stock <= 0 ? 'not-allowed' : 'pointer',
@@ -359,11 +400,10 @@ export default function ProductDetailPage() {
               transition: 'all .15s',
             }}
           >
-            Buy at {formatPrice(product.price)}
+            ⚡ Buy at {formatPrice(product.price)}
           </button>
         </div>
       </div>
     </div>
   );
 }
-

@@ -1,16 +1,25 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
+import Navbar from './Navbar';
+import Footer from './Footer';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
-  const isHomepage = pathname === '/';
+  
+  // The homepage ("/") has its own custom header, so we don't show the standard Navbar
+  if (pathname === '/') {
+    return (
+      <>
+        {children}
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
-      {!isHomepage && <Navbar />}
-      <main style={{ flex: 1 }}>{children}</main>
+      <Navbar />
+      {children}
       <Footer />
     </>
   );

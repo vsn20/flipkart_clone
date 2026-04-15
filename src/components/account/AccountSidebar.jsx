@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 export default function AccountSidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   const isActive = (path) => pathname === path;
 
@@ -28,7 +29,7 @@ export default function AccountSidebar() {
         </div>
 
         {/* MY ORDERS */}
-        <Link href="/orders" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid #f0f0f0', textDecoration: 'none', cursor: 'pointer', background: pathname === '/orders' ? '#f5faff' : 'transparent' }}>
+        <Link href="/orders" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid #f0f0f0', textDecoration: 'none', cursor: 'pointer', background: pathname.startsWith('/orders') ? '#f5faff' : 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-6 14H6v-2h8v2zm4-4H6v-2h12v2zm0-4H6V6h12v2z"/></svg>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#212121' }}>MY ORDERS</span>
@@ -89,7 +90,7 @@ export default function AccountSidebar() {
         </div>
 
         {/* MY STUFF */}
-        <div>
+        <div style={{ borderBottom: '1px solid #f0f0f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 4px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#878787', letterSpacing: 0.3, textTransform: 'uppercase' }}>My Stuff</span>
@@ -112,6 +113,18 @@ export default function AccountSidebar() {
               {item.label}
             </Link>
           ))}
+        </div>
+
+        {/* LOGOUT */}
+        <div 
+          onClick={() => {
+            logout();
+            router.push('/login');
+          }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', cursor: 'pointer' }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#878787', textTransform: 'uppercase' }}>Logout</span>
         </div>
       </div>
     </div>

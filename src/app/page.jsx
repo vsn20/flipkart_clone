@@ -203,9 +203,9 @@ export default function HomePage() {
                 {isAuthenticated ? (
                   <>
                     {[
-                      { label: 'My Profile', href: '/account/profile' },
-                      { label: 'Orders', href: '/account/orders' },
-                      { label: 'Wishlist', href: '/account/wishlist' },
+                      { label: 'My Profile', href: '/account' },
+                      { label: 'Orders', href: '/orders' },
+                      { label: 'Wishlist', href: '/wishlist' },
                       { label: 'Coupons', href: '/account/coupons' },
                       { label: 'Gift Cards', href: '/account/gift-cards' },
                       { label: 'Saved Addresses', href: '/account/addresses' },

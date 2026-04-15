@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ordersAPI } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { formatPrice, getStatusColor } from '@/lib/utils';
-import { FiSearch, FiChevronRight } from 'react-icons/fi';
+import { FiSearch } from 'react-icons/fi';
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -64,173 +64,169 @@ export default function OrdersPage() {
     return matches;
   });
 
+  // Flatten orders into individual item rows, each carrying their parent order
+  const flatItems = filteredOrders.flatMap(order =>
+    (order.items || []).map(item => ({ item, order }))
+  );
+
   if (!isAuthenticated) return null;
 
   return (
-    <div style={{ background: '#f5f5f5', minHeight: '100vh', paddingTop: 12, paddingBottom: 12 }}>
-      <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 8px' }}>
+    <div className="min-h-screen bg-[#f1f3f6] py-3">
+      <div className="max-w-[1050px] mx-auto px-3">
+
         {/* Breadcrumb */}
-        <div style={{ fontSize: 12, color: '#878787', marginBottom: 16 }}>
-          Home <span style={{ padding: '0 4px' }}>›</span> My Account <span style={{ padding: '0 4px' }}>›</span> <span style={{ color: '#212121' }}>My Orders</span>
-        </div>
+        <nav className="text-xs text-[#878787] mb-3">
+          <span>Home</span>
+          <span className="mx-1">›</span>
+          <span>My Account</span>
+          <span className="mx-1">›</span>
+          <span className="text-[#212121] font-medium">My Orders</span>
+        </nav>
 
-        <div style={{ display: 'flex', gap: 12 }}>
-          {/* Left Sidebar Filters */}
-          <div style={{ width: 220, flexShrink: 0 }}>
-            <div style={{ background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.05)', borderRadius: 2 }}>
-              <div style={{ padding: 16, borderBottom: '1px solid #e8e8e8' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#212121', margin: 0 }}>Filters</h3>
-              </div>
+        <div className="flex gap-3 items-start">
 
-              {/* Status Filter */}
-              <div style={{ padding: 16, borderBottom: '1px solid #e8e8e8' }}>
-                <h4 style={{ fontSize: 12, fontWeight: 700, color: '#212121', marginBottom: 12, margin: 0, marginBottom: 12 }}>ORDER STATUS</h4>
-                {['On the way', 'Delivered', 'Cancelled', 'Returned'].map(status => (
-                  <label key={status} style={{ display: 'flex', alignItems: 'center', marginBottom: 10, cursor: 'pointer', fontSize: 13, color: '#878787' }}>
-                    <input
-                      type="checkbox"
-                      checked={statusFilter === status}
-                      onChange={() => setStatusFilter(statusFilter === status ? '' : status)}
-                      style={{ marginRight: 8, cursor: 'pointer', width: 16, height: 16 }}
-                    />
-                    {status}
-                  </label>
-                ))}
-              </div>
+          {/* ── LEFT SIDEBAR ── */}
+          <aside className="w-[230px] shrink-0 bg-white shadow-sm">
 
-              {/* Date Filter */}
-              <div style={{ padding: 16 }}>
-                <h4 style={{ fontSize: 12, fontWeight: 700, color: '#212121', marginBottom: 12, margin: 0, marginBottom: 12 }}>ORDER TIME</h4>
-                {[
-                  { label: 'Last 30 days', value: '30' },
-                  { label: '2024', value: '2024' },
-                  { label: '2023', value: '2023' },
-                  { label: 'Older', value: 'older' },
-                ].map(item => (
-                  <label key={item.value} style={{ display: 'flex', alignItems: 'center', marginBottom: 10, cursor: 'pointer', fontSize: 13, color: '#878787' }}>
-                    <input
-                      type="checkbox"
-                      checked={dateFilter === item.value}
-                      onChange={() => setDateFilter(dateFilter === item.value ? '' : item.value)}
-                      style={{ marginRight: 8, cursor: 'pointer', width: 16, height: 16 }}
-                    />
-                    {item.label}
-                  </label>
-                ))}
-              </div>
+            <div className="px-4 py-3 border-b border-[#e0e0e0]">
+              <span className="text-base font-semibold text-[#212121]">Filters</span>
             </div>
-          </div>
 
-          {/* Main Content */}
-          <div style={{ flex: 1 }}>
-            {/* Search Box */}
-            <div style={{ background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.05)', borderRadius: 2, padding: 16, marginBottom: 12 }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#f5f5f5', borderRadius: 2, padding: '0 12px', border: '1px solid #e8e8e8' }}>
+            {/* ORDER STATUS */}
+            <div className="px-4 pt-4 pb-3 border-b border-[#e0e0e0]">
+              <p className="text-xs font-bold text-[#212121] uppercase tracking-wider mb-3">
+                Order Status
+              </p>
+              {['On the way', 'Delivered', 'Cancelled', 'Returned'].map(status => (
+                <label key={status} className="flex items-center gap-2 mb-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={statusFilter === status}
+                    onChange={() => setStatusFilter(statusFilter === status ? '' : status)}
+                    className="w-[15px] h-[15px] accent-[#2874f0] cursor-pointer"
+                  />
+                  <span className="text-sm text-[#212121] group-hover:text-[#2874f0]">{status}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* ORDER TIME */}
+            <div className="px-4 pt-4 pb-4">
+              <p className="text-xs font-bold text-[#212121] uppercase tracking-wider mb-3">
+                Order Time
+              </p>
+              {[
+                { label: 'Last 30 days', value: '30' },
+                { label: '2024', value: '2024' },
+                { label: '2023', value: '2023' },
+                { label: 'Older', value: 'older' },
+              ].map(item => (
+                <label key={item.value} className="flex items-center gap-2 mb-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={dateFilter === item.value}
+                    onChange={() => setDateFilter(dateFilter === item.value ? '' : item.value)}
+                    className="w-[15px] h-[15px] accent-[#2874f0] cursor-pointer"
+                  />
+                  <span className="text-sm text-[#212121] group-hover:text-[#2874f0]">{item.label}</span>
+                </label>
+              ))}
+            </div>
+
+          </aside>
+
+          {/* ── RIGHT CONTENT ── */}
+          <div className="flex-1 min-w-0">
+
+            {/* Search bar */}
+            <div className="bg-white shadow-sm mb-3">
+              <div className="flex">
+                <div className="flex-1 flex items-center px-4">
                   <input
                     type="text"
                     placeholder="Search your orders here"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 13, padding: '10px 0' }}
+                    className="w-full border-none outline-none text-sm py-4 text-[#212121] placeholder-[#9e9e9e] bg-transparent"
                   />
                 </div>
-                <button style={{ background: '#2874f0', color: '#fff', border: 'none', borderRadius: 2, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FiSearch size={16} /> Search Orders
+                <button className="flex items-center gap-2 bg-[#2874f0] text-white text-sm font-semibold px-8 py-4 hover:bg-[#1a65d6] transition-colors shrink-0">
+                  <FiSearch size={18} />
+                  <span>Search Orders</span>
                 </button>
               </div>
             </div>
 
-            {/* Orders List */}
-            <div style={{ background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.05)', borderRadius: 2 }}>
-              {loading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#878787' }}>Loading orders...</div>
-              ) : filteredOrders.length === 0 ? (
-                <div style={{ padding: 48, textAlign: 'center' }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: '#212121', marginBottom: 4 }}>No orders found</h3>
-                  <p style={{ fontSize: 13, color: '#878787' }}>Looks like your filters didn't match any orders</p>
-                </div>
-              ) : (
-                filteredOrders.map((order, idx) => (
+            {/* Orders list — each item is its own card with gap between */}
+            {loading ? (
+              <div className="bg-white shadow-sm py-16 text-center text-sm text-[#878787]">
+                Loading orders...
+              </div>
+            ) : flatItems.length === 0 ? (
+              <div className="bg-white shadow-sm py-16 text-center">
+                <div className="text-5xl mb-4">📦</div>
+                <p className="text-base font-semibold text-[#212121] mb-1">No orders found</p>
+                <p className="text-sm text-[#878787]">Looks like your filters didn't match any orders</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {flatItems.map(({ item, order }) => (
                   <Link
-                    key={order.id}
+                    key={item.id}
                     href={`/order-confirmation/${order.id}`}
-                    style={{
-                      display: 'block',
-                      padding: 16,
-                      borderBottom: idx < filteredOrders.length - 1 ? '1px solid #e8e8e8' : 'none',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      transition: 'background 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafaf9'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    className="bg-white rounded-sm shadow-sm flex items-center hover:bg-[#f5f5f6] transition-colors no-underline overflow-hidden"
                   >
-                    {/* Header with Order Number and Status */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#212121', marginBottom: 2 }}>
-                          Order #{order.order_number}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#878787' }}>
-                          Placed on {new Date(order.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {/* Product Image */}
+                    <div className="flex items-center justify-center w-[110px] shrink-0 py-5 px-4">
+                      <img
+                        src={item.product_image || item.product?.images?.[0] || 'https://via.placeholder.com/80'}
+                        alt={item.product_name}
+                        className="w-[72px] h-[72px] object-contain"
+                      />
+                    </div>
+
+                    {/* Product Name + Qty */}
+                    <div className="flex-1 py-5 pr-4 min-w-0">
+                      <p className="text-sm text-[#212121] leading-[1.4] mb-1 line-clamp-2">
+                        {item.product_name}
+                      </p>
+                      <p className="text-xs text-[#878787]">Qty: {item.quantity}</p>
+                    </div>
+
+                    {/* Price */}
+                    <div className="w-[120px] shrink-0 py-5 px-2 text-sm font-medium text-[#212121]">
+                      {formatPrice(item.price)}
+                    </div>
+
+                    {/* Status */}
+                    <div className="w-[260px] shrink-0 py-5 px-4">
+                      <div className="flex items-center gap-[6px] mb-[3px]">
                         <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '4px 10px',
-                            borderRadius: 12,
-                            backgroundColor: getStatusColor(order.status) + '20',
-                            color: getStatusColor(order.status),
-                            textTransform: 'capitalize',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}
-                        >
-                          ● {order.status}
+                          className="w-[10px] h-[10px] rounded-full shrink-0"
+                          style={{ backgroundColor: getStatusColor(order.status) }}
+                        />
+                        <span className="text-sm font-semibold text-[#212121]">
+                          {order.status === 'Delivered'
+                            ? `Delivered on ${new Date(order.updated_at || order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                            : order.status}
                         </span>
-                        <FiChevronRight size={16} style={{ color: '#878787' }} />
                       </div>
-                    </div>
-
-                    {/* Product Items */}
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, borderBottom: '1px solid #e8e8e8', paddingBottom: 12 }}>
-                      {order.items?.slice(0, 4).map((item) => (
-                        <div key={item.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                          <img
-                            src={item.product_image || item.product?.images?.[0] || 'https://via.placeholder.com/48'}
-                            alt={item.product_name}
-                            style={{ width: 48, height: 48, objectFit: 'contain', border: '1px solid #e8e8e8', borderRadius: 2 }}
-                          />
-                          <div>
-                            <div style={{ fontSize: 12, color: '#212121', lineHeight: 1.4, maxWidth: 200, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {item.product_name}
-                            </div>
-                            <div style={{ fontSize: 11, color: '#878787' }}>Qty: {item.quantity}</div>
-                          </div>
-                        </div>
-                      ))}
-                      {order.items?.length > 4 && (
-                        <span style={{ fontSize: 11, color: '#878787' }}>+{order.items.length - 4} more</span>
-                      )}
-                    </div>
-
-                    {/* Footer with Payment and Price */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
-                      <span style={{ color: '#878787' }}>
-                        {order.payment_method === 'COD' ? 'Cash on Delivery' : 'UPI'}
-                      </span>
-                      <span style={{ fontWeight: 700, color: '#212121' }}>{formatPrice(order.total_amount)}</span>
+                      <p className="text-xs text-[#878787] pl-4">
+                        {order.status === 'Delivered'
+                          ? 'Your item has been delivered'
+                          : order.status === 'Cancelled'
+                          ? 'Your order has been cancelled'
+                          : order.status === 'Returned'
+                          ? 'Your return request is processed'
+                          : 'Your item is on the way'}
+                      </p>
                     </div>
                   </Link>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
+
           </div>
         </div>
       </div>

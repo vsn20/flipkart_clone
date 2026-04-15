@@ -8,6 +8,7 @@ import { formatPrice } from '@/lib/utils';
 import { FiTrash2, FiShoppingCart } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import AccountSidebar from '@/components/account/AccountSidebar';
 
 export default function WishlistPage() {
   const router = useRouter();
@@ -59,10 +60,12 @@ export default function WishlistPage() {
   const items = wishlist?.items || [];
 
   return (
-    <div style={{ background: '#f5f5f5', minHeight: '100vh', paddingTop: 12, paddingBottom: 12 }}>
-      <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 8px' }}>
-        {/* Header */}
-        <div style={{ background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.05)', borderRadius: 2, marginBottom: 12, padding: '16px' }}>
+    <div style={{ background: '#f1f3f6', minHeight: 'calc(100vh - 120px)', padding: '16px 0' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 12px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        <AccountSidebar />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Header */}
+          <div style={{ background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.05)', borderRadius: 2, marginBottom: 12, padding: '16px' }}>
           <h1 style={{ fontSize: 18, fontWeight: 600, color: '#212121', margin: 0 }}>
             My Wishlist ({items.length})
           </h1>
@@ -242,6 +245,7 @@ export default function WishlistPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
