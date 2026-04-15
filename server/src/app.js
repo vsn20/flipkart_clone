@@ -9,10 +9,10 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// ✅ Allowed origins (local + production)
+// ✅ Allowed origins (safe + flexible)
 const allowedOrigins = [
   'http://localhost:3000',
-  process.env.CLIENT_URL // your Vercel URL
+  process.env.CLIENT_URL, // your main Vercel domain
 ];
 
 // Middleware
@@ -20,14 +20,21 @@ app.use(helmet());
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests without origin (Postman, mobile apps)
+    // Allow requests with no origin (Postman, mobile apps)
     if (!origin) return callback(null, true);
 
+    // ✅ Allow localhost + exact match
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
     }
+
+    // ✅ Allow ALL Vercel preview URLs automatically
+    if (origin.includes('vercel.app')) {
+      return callback(null, true);
+    }
+
+    // ❌ Block everything else
+    return callback(new Error('Not allowed by CORS: ' + origin));
   },
   credentials: true,
 }));
