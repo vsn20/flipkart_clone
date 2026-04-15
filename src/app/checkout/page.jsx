@@ -1,275 +1,277 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { ordersAPI, addressAPI } from '@/lib/api';
+import { ordersAPI, addressAPI, productsAPI } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import Link from 'next/link';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
-  const { cart, summary, fetchCart } = useCart();
-  const [step, setStep] = useState(1);
+  const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
+  const { cart, fetchCart, updateQuantity } = useCart();
+
+  const [step, setStep] = useState(2); // 2=summary, 3=payment
   const [placing, setPlacing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('COD');
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
-  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [showAddressDrawer, setShowAddressDrawer] = useState(false);
+  const [directItem, setDirectItem] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('COD');
+
+  const productId = searchParams.get('product_id');
+  const queryAddressId = searchParams.get('address_id');
 
   useEffect(() => { if (!isAuthenticated) router.push('/login'); }, [isAuthenticated, router]);
-  useEffect(() => { fetchCart(); }, []);
 
   useEffect(() => {
-    const loadAddresses = async () => {
-      try {
-        const res = await addressAPI.getAll();
-        const addrs = res.data.addresses || [];
-        setAddresses(addrs);
+    if (productId) {
+      productsAPI.getById(productId).then(res => {
+        setDirectItem({ quantity: 1, product: res.data.product });
+      });
+    } else { fetchCart(); }
+  }, [productId, fetchCart]);
+
+  useEffect(() => {
+    addressAPI.getAll().then(res => {
+      const addrs = res.data.addresses || [];
+      setAddresses(addrs);
+      if (queryAddressId && addrs.some(a => String(a.id) === queryAddressId)) {
+        setSelectedAddressId(parseInt(queryAddressId));
+      } else {
         const def = addrs.find(a => a.is_default) || addrs[0];
         if (def) setSelectedAddressId(def.id);
-      } catch (err) {
-        console.error('Failed to load addresses:', err);
-        toast.error('Failed to load addresses');
-      } finally {
-        setLoadingAddresses(false);
       }
-    };
-    loadAddresses();
-  }, []);
+    });
+  }, [queryAddressId]);
 
-  if (!isAuthenticated) return null;
+  const items = directItem? [directItem] : (cart?.items || []);
+  const item = items[0];
+  if (!item) return <div style={{padding:60, textAlign:'center', background:'#f1f3f6', minHeight:'100vh'}}>Loading...</div>;
 
-  const items = cart?.items || [];
-  if (items.length === 0 && !placing) { router.push('/cart'); return null; }
+  const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0];
+  const qty = Number(item.quantity) || 1; // FIX NaN
 
-  const selectedAddress = addresses.find(a => a.id === selectedAddressId);
-  const mrp = parseFloat(summary?.totalMRP) || 0;
-  const discount = parseFloat(summary?.totalDiscount) || 0;
-  const delivery = parseFloat(summary?.deliveryCharges) || 0;
-  const total = parseFloat(summary?.totalAmount) || 0;
+  // FIX: multiply by quantity
+  const mrp = parseFloat(item.product.mrp) * qty;
+  const price = parseFloat(item.product.price) * qty;
+  const discount = mrp - price;
+  const fee = 36;
+  const total = price + fee;
+  const save = discount - fee;
 
-  const handlePlaceOrder = async () => {
-    if (!selectedAddressId) { toast.error('Please select a delivery address'); return; }
-    setPlacing(true);
-    try {
-      const addr = selectedAddress;
-      const res = await ordersAPI.place({
-        shipping_name: addr.name,
-        shipping_phone: addr.phone,
-        shipping_address: addr.address,
-        shipping_city: addr.city,
-        shipping_state: addr.state,
-        shipping_pincode: addr.pincode,
-        payment_method: paymentMethod
-      });
-      toast.success('Order placed successfully! 🎉');
-      router.push(`/order-confirmation/${res.data.order.id}`);
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to place order');
-    } finally { setPlacing(false); }
+  const handleQtyChange = async (newQty) => {
+    const n = parseInt(newQty);
+    if (directItem) {
+      setDirectItem({...directItem, quantity: n});
+    } else {
+      await updateQuantity(item.id, n);
+      fetchCart();
+    }
   };
 
-  const steps = [
-    { num: 1, label: 'DELIVERY ADDRESS' },
-    { num: 2, label: 'ORDER SUMMARY' },
-    { num: 3, label: 'PAYMENT' },
-  ];
+  const handlePlace = async () => {
+    if (!selectedAddress) return toast.error('Select address');
+    setPlacing(true);
+    try {
+      const payload = {
+        shipping_name: selectedAddress.name,
+        shipping_phone: selectedAddress.phone,
+        shipping_address: selectedAddress.address,
+        shipping_city: selectedAddress.city,
+        shipping_state: selectedAddress.state,
+        shipping_pincode: selectedAddress.pincode,
+        payment_method: paymentMethod
+      };
+      const res = directItem
+      ? await ordersAPI.placeDirect({...payload, product_id: item.product.id, quantity: qty})
+        : await ordersAPI.place(payload);
+      toast.success('Order placed!');
+      router.push(`/order-confirmation/${res.data.order.id}`);
+    } catch (e) { toast.error('Failed'); } finally { setPlacing(false); }
+  };
 
   return (
-    <div style={{ background: '#f1f3f6', minHeight: '80vh', padding: '12px 0' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 12px', display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+    <div style={{background:'#f1f3f6', minHeight:'100vh'}}>
+      <div style={{background:'#fff', borderBottom:'1px solid #e0e0e0'}}>
+        <div style={{maxWidth:1100, margin:'0 auto', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap:40}}>
+          {[
+            {l:'Address', done:true, active:false},
+            {l:'Order Summary', active:step===2, done:step>2},
+            {l:'Payment', active:step===3, done:step>3}
+          ].map((s,i)=>(
+            <div key={i} style={{display:'flex', alignItems:'center', gap:8}}>
+              {i>0 && <div style={{width:80, height:1, background:i<=step-1?'#2874f0':'#e0e0e0', marginRight:8}}/>}
+              <div style={{width:20,height:20,borderRadius:'50%',background:s.active?'#2874f0':'#fff',border:`2px solid ${s.active||s.done?'#2874f0':'#e0e0e0'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:s.active?'#fff':s.done?'#2874f0':'#878787'}}>{s.done?'✓':i+1}</div>
+              <span style={{fontSize:13,color:s.active?'#000':'#878787',fontWeight:s.active?600:400}}>{s.l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        {/* Main */}
-        <div style={{ flex: 1, minWidth: 320 }}>
-
-          {/* Step Indicator – Flipkart-style */}
-          <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)', marginBottom: 8, display: 'flex', overflow: 'hidden' }}>
-            {steps.map((s, i) => (
-              <div key={s.num} style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '14px 16px', borderRight: i < steps.length - 1 ? '1px solid #f0f0f0' : 'none', background: step === s.num ? '#2874f0' : step > s.num ? '#fff' : '#fff', cursor: step > s.num ? 'pointer' : 'default' }}
-                onClick={() => step > s.num && setStep(s.num)}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: step === s.num ? '#fff' : step > s.num ? '#2874f0' : '#e0e0e0', color: step === s.num ? '#2874f0' : step > s.num ? '#fff' : '#878787', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, marginRight: 10, flexShrink: 0 }}>
-                  {step > s.num ? '✓' : s.num}
-                </span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: step === s.num ? '#fff' : step > s.num ? '#2874f0' : '#878787', whiteSpace: 'nowrap' }}>
-                  {s.label}
-                </span>
+      <div style={{maxWidth:1100, margin:'0 auto', padding:'12px 16px', display:'flex', gap:16, alignItems:'flex-start'}}>
+        <div style={{flex:1}}>
+          <div style={{background:'#fff', padding:'16px 20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14, color:'#878787', marginBottom:8}}>Deliver to:</div>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                  <span style={{fontWeight:600, fontSize:15}}>{selectedAddress?.name}</span>
+                  <span style={{background:'#f0f0f0', color:'#878787', fontSize:11, padding:'2px 8px', borderRadius:2, fontWeight:600}}>{selectedAddress?.address_type?.toUpperCase()||'HOME'}</span>
+                </div>
+                <div style={{fontSize:14, lineHeight:'20px', color:'#212121'}}>
+                  {selectedAddress?.address}, {selectedAddress?.locality}, {selectedAddress?.city}, {selectedAddress?.state} - {selectedAddress?.pincode}
+                </div>
+                <div style={{fontSize:14, marginTop:4, color:'#212121'}}>{selectedAddress?.phone}</div>
               </div>
-            ))}
+              <button onClick={()=>setShowAddressDrawer(true)} style={{padding:'8px 20px', border:'1px solid #e0e0e0', background:'#fff', color:'#2874f0', borderRadius:2, fontWeight:500, cursor:'pointer', height:36}}>Change</button>
+            </div>
+            <div style={{background:'#fff7e6', padding:'12px 16px', marginTop:14, borderRadius:4, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div>
+                <div style={{fontSize:13, color:'#212121'}}>Help us reach you faster.</div>
+                <div style={{fontSize:13, color:'#878787'}}>Please set exact location on map.</div>
+              </div>
+              <button style={{background:'#fff', border:'1px solid #dbdb', padding:'8px 20px', borderRadius:2, color:'#2874f0', fontWeight:500, cursor:'pointer'}}>Set Location</button>
+            </div>
           </div>
 
-          {/* STEP 1 */}
-          {step === 1 && (
-            <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)' }}>
-              <div style={{ padding: '20px 24px' }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#212121', marginBottom: 16 }}>Select Delivery Address</h3>
-
-                {loadingAddresses ? (
-                  <div style={{ padding: '30px 0', textAlign: 'center', color: '#878787' }}>Loading addresses...</div>
-                ) : addresses.length === 0 ? (
-                  <div style={{ padding: '30px 0', textAlign: 'center' }}>
-                    <p style={{ color: '#878787', marginBottom: 16 }}>No saved addresses found</p>
-                    <Link href="/account/addresses" style={{ background: '#2874f0', color: '#fff', padding: '10px 24px', borderRadius: 2, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>
-                      Add New Address
-                    </Link>
+          <div style={{background:'#fff', padding:'20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+            <div style={{color:'#008c00', fontSize:12, fontWeight:700, marginBottom:14, letterSpacing:.5}}>SUPER DEALS</div>
+            <div style={{display:'flex', gap:24}}>
+              <img src={item.product.images?.[0]} alt="" style={{width:90, height:110, objectFit:'contain'}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:16, fontWeight:500, marginBottom:4}}>{item.product.name}</div>
+                <div style={{fontSize:14, color:'#878787', marginBottom:8}}>6 GB RAM</div>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
+                  <div style={{display:'flex', alignItems:'center', gap:2}}>
+                    {[...Array(5)].map((_,i)=><span key={i} style={{color:i<4?'#388e3c':'#e0e0e0', fontSize:16}}>★</span>)}
+                    <span style={{marginLeft:4, fontSize:14, color:'#878787'}}>4.2</span>
                   </div>
-                ) : (
-                  <>
-                    {addresses.map(addr => (
-                      <label key={addr.id} style={{
-                        display: 'flex', gap: 12, padding: '14px 16px', marginBottom: 8, cursor: 'pointer',
-                        border: selectedAddressId === addr.id ? '2px solid #2874f0' : '1px solid #e0e0e0',
-                        borderRadius: 4, background: selectedAddressId === addr.id ? '#f5f9ff' : '#fff',
-                        alignItems: 'flex-start'
-                      }}>
-                        <input type="radio" name="delivery-address" checked={selectedAddressId === addr.id}
-                          onChange={() => setSelectedAddressId(addr.id)}
-                          style={{ accentColor: '#2874f0', width: 18, height: 18, marginTop: 2, flexShrink: 0 }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <span style={{ fontSize: 14, fontWeight: 600, color: '#212121' }}>{addr.name}, {addr.pincode}</span>
-                            <span style={{ fontSize: 10, background: '#e8e8e8', color: '#212121', padding: '2px 6px', borderRadius: 2, fontWeight: 700 }}>
-                              {addr.address_type?.toUpperCase() || 'HOME'}
-                            </span>
-                          </div>
-                          <p style={{ fontSize: 13, color: '#878787', lineHeight: 1.5 }}>
-                            {addr.address}, {addr.locality}, {addr.city}, {addr.state}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                    <button onClick={() => setStep(2)} disabled={!selectedAddressId}
-                      style={{
-                        background: selectedAddressId ? '#fb641b' : '#ccc', color: '#fff', border: 'none', borderRadius: 2,
-                        padding: '14px 40px', fontSize: 14, fontWeight: 700, cursor: selectedAddressId ? 'pointer' : 'not-allowed',
-                        letterSpacing: 0.5, textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(0,0,0,.2)', marginTop: 16
-                      }}>
-                      Continue
-                    </button>
-                    <Link href="/account/addresses" style={{
-                      background: 'none', color: '#2874f0', border: '1px solid #2874f0', borderRadius: 2,
-                      padding: '14px 40px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
-                      textTransform: 'uppercase', marginLeft: 12, display: 'inline-block', textDecoration: 'none'
-                    }}>
-                      Add New Address
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2 */}
-          {step === 2 && (
-            <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#212121' }}>Deliver to: </span>
-                    <span style={{ fontSize: 14, color: '#212121' }}>{selectedAddress?.name}, {selectedAddress?.pincode}</span>
-                    <span style={{ marginLeft: 8, fontSize: 11, background: '#e0e0e0', padding: '2px 6px', borderRadius: 2, fontWeight: 600 }}>{selectedAddress?.address_type?.toUpperCase() || 'HOME'}</span>
-                    <p style={{ fontSize: 13, color: '#878787', marginTop: 4 }}>{selectedAddress?.address}, {selectedAddress?.locality}, {selectedAddress?.city}</p>
-                  </div>
-                  <button onClick={() => setStep(1)} style={{ fontSize: 14, color: '#2874f0', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>Change</button>
+                  <span style={{color:'#878787', fontSize:14}}>• (680)</span>
+                  <img src="https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/fa_62673a.png" alt="assured" style={{height:18, marginLeft:4}}/>
                 </div>
+                <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:6}}>
+                  <span style={{color:'#388e3c', fontSize:18, fontWeight:700}}>↓{Math.round((discount/mrp)*100)}%</span>
+                  <span style={{color:'#878787', textDecoration:'line-through', fontSize:16}}>{formatPrice(parseFloat(item.product.mrp))}</span>
+                  <span style={{fontSize:22, fontWeight:700}}>{formatPrice(parseFloat(item.product.price))}</span>
+                </div>
+                <div style={{fontSize:14, marginBottom:4}}>+ ₹{fee} Protect Promise Fee <span style={{color:'#878787', cursor:'pointer'}}>ⓘ</span></div>
+                <div style={{fontSize:13, color:'#878787'}}>Or Pay ₹9,399 + <span style={{color:'#ffd700'}}>●</span> 100</div>
               </div>
-              <div style={{ padding: '12px 0' }}>
-                {items.map((item, i) => (
-                  <div key={item.id} style={{ display: 'flex', gap: 12, padding: '12px 20px', borderBottom: i < items.length-1 ? '1px solid #f8f8f8' : 'none' }}>
-                    <img src={item.product?.images?.[0] || ''} alt={item.product?.name} style={{ width: 60, height: 60, objectFit: 'contain', flexShrink: 0 }}/>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, color: '#212121', marginBottom: 4 }}>{item.product?.name}</p>
-                      <p style={{ fontSize: 12, color: '#878787' }}>Qty: {item.quantity}</p>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: '#212121', marginTop: 4 }}>{formatPrice(parseFloat(item.product?.price) * item.quantity)}</p>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <select value={qty} onChange={e=>handleQtyChange(e.target.value)} style={{padding:'6px 24px 6px 12px', border:'1px solid #e0e0e0', borderRadius:2, fontSize:14, background:'#fff', cursor:'pointer'}}>
+                  {[1,2,3,4,5,6,7,8,9,10].map(n=><option key={n} value={n}>Qty: {n}</option>)}
+                </select>
               </div>
-              <div style={{ padding: '16px 20px' }}>
-                <button onClick={() => setStep(3)} style={{ background: '#fb641b', color: '#fff', border: 'none', borderRadius: 2, padding: '14px 40px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5, textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(0,0,0,.2)' }}>
-                  Continue
-                </button>
-              </div>
+            </div>
+            <div style={{marginTop:20, fontSize:14}}>Delivery by <span style={{fontWeight:500}}>Apr 18, Sat</span></div>
+            <div style={{marginTop:24, display:'flex', alignItems:'center', gap:10}}>
+              <input type="checkbox" id="gst" style={{width:18, height:18}}/>
+              <label htmlFor="gst" style={{fontSize:14}}>Use GST Invoice</label>
+            </div>
+          </div>
+
+          {step === 3 && (
+            <div style={{background:'#fff', padding:'20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+              <div style={{fontSize:16, fontWeight:500, marginBottom:16, color:'#2874f0', borderBottom:'2px solid #2874f0', paddingBottom:8, display:'inline-block'}}>PAYMENT OPTIONS</div>
+              {['Cash on Delivery','UPI','Credit / Debit / ATM Card','EMI','Net Banking'].map(opt=>(
+                <label key={opt} style={{display:'flex', alignItems:'center', gap:12, padding:'16px', borderBottom:'1px solid #f0f0f0', cursor:'pointer'}}>
+                  <input type="radio" name="pay" checked={paymentMethod===opt} onChange={()=>setPaymentMethod(opt)} style={{width:18, height:18, accentColor:'#2874f0'}}/>
+                  <span style={{fontSize:14}}>{opt}</span>
+                </label>
+              ))}
             </div>
           )}
 
-          {/* STEP 3 */}
-          {step === 3 && (
-            <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)' }}>
-              <div style={{ padding: '16px 20px' }}>
-                {[
-                  { id: 'COD', title: 'Cash on Delivery', sub: 'Pay when your order is delivered to your doorstep.' },
-                  { id: 'UPI', title: 'UPI', sub: 'Pay using Google Pay, PhonePe, Paytm or any UPI app.' },
-                  { id: 'CARD', title: 'Credit / Debit / ATM Card', sub: 'Add and secure cards as per your convenience.' },
-                  { id: 'NB', title: 'Net Banking', sub: 'This instrument has low success, use UPI or cards.' },
-                ].map(opt => (
-                  <label key={opt.id} onClick={() => setPaymentMethod(opt.id)}
-                    style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', borderRadius: 2, marginBottom: 6, cursor: 'pointer', border: paymentMethod === opt.id ? '1px solid #2874f0' : '1px solid #e0e0e0', background: paymentMethod === opt.id ? '#f5f9ff' : '#fff' }}>
-                    <input type="radio" name="pay" value={opt.id} checked={paymentMethod === opt.id} onChange={() => setPaymentMethod(opt.id)} style={{ accentColor: '#2874f0', marginTop: 3 }}/>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: '#212121', marginBottom: 3 }}>{opt.title}</p>
-                      <p style={{ fontSize: 13, color: '#878787' }}>{opt.sub}</p>
-                    </div>
-                  </label>
-                ))}
-                <button onClick={handlePlaceOrder} disabled={placing}
-                  style={{ background: '#fb641b', color: '#fff', border: 'none', borderRadius: 2, padding: '14px 40px', fontSize: 14, fontWeight: 700, cursor: placing ? 'not-allowed' : 'pointer', letterSpacing: 0.5, textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(0,0,0,.2)', marginTop: 8, opacity: placing ? 0.7 : 1 }}>
-                  {placing ? 'Placing Order...' : `Place Order  •  ${formatPrice(total)}`}
-                </button>
-              </div>
+          <div style={{background:'#fff', padding:'16px 20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+            <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12}}>
+              <div style={{width:24, height:24, background:'#ff9f00', borderRadius:3, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14}}>📦</div>
+              <span style={{fontSize:16, fontWeight:500}}>Rest assured with Open Box Delivery</span>
             </div>
-          )}
+            <div style={{fontSize:14, color:'#212121', lineHeight:'20px', paddingLeft:34}}>
+              Delivery agent will open the package so you can check for correct product, damage or missing items. Share OTP to accept the delivery. <span style={{color:'#2874f0', cursor:'pointer'}}>Why?</span>
+            </div>
+          </div>
         </div>
 
-        {/* Price Summary */}
-        <div style={{ width: 300, flexShrink: 0 }}>
-          <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)', position: 'sticky', top: 60 }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f0f0f0' }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: '#878787', letterSpacing: 0.5, textTransform: 'uppercase' }}>Price Details</h3>
-            </div>
-            <div style={{ padding: '16px 20px' }}>
-              {[
-                { l: `Price (${summary?.itemCount || 0} items)`, v: formatPrice(mrp), s: {} },
-                { l: 'Discount', v: `−${formatPrice(discount)}`, s: { color: '#388e3c' } },
-                { l: 'Delivery Charges', v: delivery === 0 ? 'FREE' : formatPrice(delivery), s: delivery === 0 ? { color: '#388e3c' } : {} },
-                { l: 'Secured Packaging Fee', v: formatPrice(7), s: {} },
-              ].map(r => (
-                <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 15 }}>
-                  <span style={{ color: '#212121' }}>{r.l}</span>
-                  <span style={r.s}>{r.v}</span>
-                </div>
-              ))}
-              <div style={{ borderTop: '1px dashed #e0e0e0', margin: '12px 0 14px' }}/>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 700, color: '#212121', marginBottom: 12 }}>
-                <span>Total Amount</span>
-                <span>{formatPrice(total)}</span>
-              </div>
-              {discount > 0 && (
-                <div style={{ background: '#f0faf0', borderRadius: 2, padding: '8px 12px', fontSize: 13, color: '#388e3c', fontWeight: 600, textAlign: 'center', marginBottom: 12 }}>
-                  🎉 You will save {formatPrice(discount)} on this order!
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 4 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2874f0" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span style={{ fontSize: 12, color: '#878787', lineHeight: 1.5 }}>Safe and secure payments. Easy returns. 100% Authentic products.</span>
+        <div style={{width:330, flexShrink:0}}>
+          <div style={{background:'#fff', marginBottom:12, boxShadow:'0 1px 2px rgba(0,0,0,.1)', borderRadius:4, overflow:'hidden'}}>
+            <div style={{padding:14, display:'flex', gap:12, background:'#f5f5f5'}}>
+              <img src="https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/fk-plus_3b0baa.png" style={{width:56, height:56, borderRadius:4, background:'#000', padding:8}} alt=""/>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600, fontSize:14, marginBottom:2}}>Get privileges worth ₹1,259</div>
+                <div style={{fontSize:12, color:'#878787', lineHeight:'16px'}}>FREE YouTube Premium, 5% SuperCoin cashback only with Black membership →</div>
               </div>
             </div>
+            <div style={{padding:'12px 14px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div style={{fontSize:14}}><span style={{textDecoration:'line-through', color:'#878787', marginRight:6}}>₹499</span>₹349 for 3 months</div>
+              <button style={{background:'#2874f0', color:'#fff', border:'none', padding:'8px 24px', borderRadius:4, fontWeight:500, cursor:'pointer'}}>Add</button>
+            </div>
+          </div>
+
+          <div style={{background:'#fff', padding:'16px', boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+            {[
+              {l:'MRP', v:formatPrice(mrp), d:true},
+              {l:'Fees', v:formatPrice(fee), d:true},
+              {l:'Discounts', v:`- ${formatPrice(discount)}`, c:'#388e3c', d:true},
+            ].map((r,i)=>(
+              <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:i<2?'1px dashed #e0e0e0':'none', fontSize:14}}>
+                <span style={{color:'#212121', borderBottom:r.d?'1px dotted #878787':''}}>{r.l} {r.d&&'⌄'}</span>
+                <span style={{color:r.c||'#212121', fontWeight:r.l==='Discounts'?500:400}}>{r.v}</span>
+              </div>
+            ))}
+            <div style={{display:'flex', justifyContent:'space-between', padding:'14px 0 8px', fontSize:15, fontWeight:500}}>
+              <span>Total Amount</span>
+              <span>{formatPrice(total)}</span>
+            </div>
+            <div style={{background:'#e8f5e9', color:'#388e3c', padding:'10px', borderRadius:4, textAlign:'center', fontSize:14, marginTop:8, display:'flex', alignItems:'center', justifyContent:'center', gap:6}}>
+              <span style={{background:'#388e3c', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11}}>₹</span>
+              You'll save <b>{formatPrice(save)}</b> on this order!
+            </div>
+          </div>
+
+          <div style={{background:'#fff', marginTop:12, padding:'12px 16px', boxShadow:'0 1px 2px rgba(0,0,0,.1)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', bottom:12}}>
+            <div>
+              <div style={{fontSize:12, color:'#878787', textDecoration:'line-through'}}>{formatPrice(mrp)}</div>
+              <div style={{fontSize:20, fontWeight:600}}>{formatPrice(total)} <span style={{fontSize:12, color:'#878787', cursor:'pointer'}}>ⓘ</span></div>
+            </div>
+            {/* FIX: white text, goes to payment */}
+            <button
+              onClick={()=> step===2? setStep(3) : handlePlace()}
+              disabled={placing}
+              style={{background:'#fb641b', color:'#fff', border:'none', padding:'12px 32px', borderRadius:4, fontWeight:600, fontSize:15, cursor:'pointer', minWidth:140, color:'#fff'}}>
+              {placing? 'Processing...' : step===2? 'CONTINUE' : 'PLACE ORDER'}
+            </button>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-const inputStyle = { width: '100%', border: '1px solid #c2c2c2', borderRadius: 2, padding: '10px 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
-
-function Field({ label, children }) {
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 12, color: '#878787', marginBottom: 5 }}>{label}</label>
-      {children}
+      {showAddressDrawer && (
+        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:1000}} onClick={()=>setShowAddressDrawer(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{position:'absolute', right:0, top:0, bottom:0, width:420, background:'#fff', boxShadow:'-2px 0 8px rgba(0,0,0,.2)', display:'flex', flexDirection:'column'}}>
+            <div style={{padding:'18px 20px', borderBottom:'1px solid #f0f0', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <h3 style={{fontSize:18, fontWeight:500}}>Select delivery address</h3>
+              <button onClick={()=>setShowAddressDrawer(false)} style={{background:'none', border:'none', fontSize:24, cursor:'pointer', color:'#878787'}}>×</button>
+            </div>
+            <div style={{flex:1, overflowY:'auto'}}>
+              {addresses.map(addr=>(
+                <div key={addr.id} onClick={()=>{setSelectedAddressId(addr.id); setShowAddressDrawer(false);}} style={{padding:'16px 20px', borderBottom:'1px solid #f0f0', cursor:'pointer', background:selectedAddressId===addr.id?'#f5faff':'#fff'}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                    <span style={{fontSize:16}}>🏠</span>
+                    <span style={{fontWeight:600}}>{addr.name}</span>
+                    {selectedAddressId===addr.id && <span style={{background:'#e3f2fd', color:'#2874f0', fontSize:11, padding:'2px 8px', borderRadius:2, fontWeight:600}}>Currently selected</span>}
+                  </div>
+                  <div style={{fontSize:13, color:'#878787', lineHeight:'18px', paddingLeft:24}}>
+                    {addr.address}, {addr.locality}, {addr.city}...
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

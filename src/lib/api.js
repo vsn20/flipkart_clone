@@ -72,6 +72,7 @@ export const cartAPI = {
 // ─── Orders API ──────────────────────────────────────
 export const ordersAPI = {
   place: (data) => api.post('/orders', data),
+  placeDirect: (data) => api.post('/orders/direct', data),
   getAll: (params) => api.get('/orders', { params }),
   getById: (id) => api.get(`/orders/${id}`),
 };

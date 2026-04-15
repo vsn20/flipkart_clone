@@ -9,9 +9,20 @@ import { debounce } from '@/lib/utils';
 
 export default function Navbar() {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   const isCartPage = pathname === '/cart';
+  const isCheckoutPage = pathname.startsWith('/checkout');
+ const isProductPage = pathname.startsWith('/product/') || pathname.includes('/p/');
+  const isWhiteNav = isCheckoutPage || isProductPage;
   const { user, isAuthenticated, logout } = useAuth();
+  
+ const navBg = isWhiteNav ? '#fff' : '#2874f0';
+const logoTextColor = isWhiteNav ? '#2874f0' : '#fff';
+const searchBg = isWhiteNav ? '#fff' : '#fff';
+const textColor = isWhiteNav ? '#212121' : '#fff';
+const hoverBg = isWhiteNav ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.13)';
+const bottomBorder = isWhiteNav ? '1px solid #e0e0e0' : 'none';
+const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
   const { cartCount } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -64,39 +75,42 @@ export default function Navbar() {
   return (
     <>
       {/* ── Top Blue Bar ─────────────────────────────── */}
-      <header style={{ background: '#2874f0', position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 1px 6px rgba(0,0,0,.2)' }}>
+      <header style={{ background: navBg, position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 1px 6px rgba(0,0,0,.2)', borderBottom: bottomBorder }}>
         <div style={{ maxWidth: 1300, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
 
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 90, marginRight: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <svg width="22" height="22" viewBox="0 0 46 46" fill="none">
-                <rect width="46" height="46" rx="4" fill="#FFE500"/>
-                <path d="M10 14h26v5H10zM10 22h18v5H10zM10 30h22v5H10z" fill="#2874F0"/>
-              </svg>
-              <span style={{ color: '#fff', fontSize: 22, fontWeight: 700, fontStyle: 'italic', letterSpacing: '-0.5px', fontFamily: 'sans-serif', lineHeight: 1 }}>
-                Flipkart
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 26, marginTop: -2 }}>
-              <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontStyle: 'italic' }}>Explore</span>
-              <span style={{ color: '#ffe500', fontSize: 11, fontWeight: 600, fontStyle: 'italic' }}>Plus</span>
-              <svg width="10" height="10" viewBox="0 0 10 10" style={{ marginLeft: 1 }}>
-                <polygon points="5,0 6.2,3.5 10,3.5 7.1,5.7 8.1,9 5,7 1.9,9 2.9,5.7 0,3.5 3.8,3.5" fill="#ffe500"/>
-              </svg>
-            </div>
+                   <Link href="/" style={{ textDecoration: 'none', minWidth: isWhiteNav ? 130 : 90, marginRight: 4 }}>
+            {isWhiteNav ? (
+              <div style={{ background: '#ffe500', borderRadius: isWhiteNav ? 12 : 2, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, height: 38 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M3 13h18v-2H3v2zm0 4h12v-2H3v2zm0-8v2h18V9H3z"/></svg>
+                <span style={{ color: '#2a55e5', fontSize: 19, fontWeight: 700, fontStyle: 'italic', fontFamily: 'Arial' }}>Flipkart</span>
+                <svg width="12" height="12" fill="none" stroke="#2a55e5" strokeWidth="2.5" viewBox="0 0 24 24" style={{ marginLeft: 2 }}><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <svg width="22" height="22" viewBox="0 0 46 46" fill="none"><rect width="46" height="46" rx="4" fill="#FFE500"/><path d="M10 14h26v5H10zM10 22h18v5H10zM10 30h22v5H10z" fill="#2874F0"/></svg>
+                  <span style={{ color: logoTextColor, fontSize: 22, fontWeight: 700, fontStyle: 'italic', letterSpacing: '-0.5px', fontFamily: 'sans-serif', lineHeight: 1 }}>Flipkart</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 26, marginTop: -2 }}>
+                  <span style={{ color: 'rgba(255,255,0.85)', fontSize: 11, fontStyle: 'italic' }}>Explore</span>
+                  <span style={{ color: '#ffe500', fontSize: 11, fontWeight: 600, fontStyle: 'italic' }}>Plus</span>
+                  <svg width="10" height="10" viewBox="0 0 10 10" style={{ marginLeft: 1 }}><polygon points="5,0 6.2,3.5 10,3.5 7.1,5.7 8.1,9 5,7 1.9,9 2.9,5.7 0,3.5 3.8,3.5" fill="#ffe500"/></svg>
+                </div>
+              </div>
+            )}
           </Link>
 
           {/* Search Bar */}
           <div ref={searchRef} style={{ flex: 1, maxWidth: 590, position: 'relative' }}>
-            <form onSubmit={handleSearch} style={{ display: 'flex', background: '#fff', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
+           <form onSubmit={handleSearch} style={{ display: 'flex', background: searchBg, borderRadius: isWhiteNav ? 10 : 2, overflow: 'hidden', border: searchBorder, boxShadow: isWhiteNav ? 'none' : '0 1px 3px rgba(0,0,0,.1)', height: isWhiteNav ? 38 : 'auto' }}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onFocus={() => searchQuery && setShowSuggestions(true)}
                 placeholder="Search for Products, Brands and More"
-                style={{ flex: 1, border: 'none', outline: 'none', padding: '10px 16px', fontSize: 14, color: '#212121', background: 'transparent', minWidth: 0 }}
+                style={{ flex: 1, border: 'none', outline: 'none', padding: isWhiteNav ? '0 16px' : '10px 16px', fontSize: 14, color: '#212121', background: 'transparent', minWidth: 0 }}
               />
               <button type="submit" style={{ background: 'transparent', border: 'none', padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2874f0' }}>
                 <svg width="20" height="20" fill="none" stroke="#2874f0" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -131,18 +145,21 @@ export default function Navbar() {
               {isAuthenticated ? (
                 <button
                   onClick={() => setShowUserMenu(v => !v)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#fff', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2, whiteSpace: 'nowrap' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.13)'}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, color: textColor, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2, whiteSpace: 'nowrap' }}
+                  onMouseEnter={e => e.currentTarget.style.background = hoverBg}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
+                  {isWhiteNav && (
+                    <svg width="20" height="20" fill="none" stroke={textColor} strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-4 14-4 14 0"/></svg>
+                  )}
                   {user?.name?.split(' ')[0] || 'Account'}
-                  <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24" style={{ transform: showUserMenu ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
+                  <svg width="14" height="14" fill="none" stroke={textColor} strokeWidth="2.5" viewBox="0 0 24 24" style={{ transform: showUserMenu ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
                     <path d="m6 9 6 6 6-6"/>
                   </svg>
                 </button>
               ) : (
                 <Link href="/login"
-                  style={{ display: 'inline-block', background: '#fff', color: '#2874f0', fontWeight: 700, fontSize: 15, padding: '6px 40px', borderRadius: 2, textDecoration: 'none', whiteSpace: 'nowrap', letterSpacing: 0.2 }}
+                  style={{ display: 'inline-block', background: isWhiteNav ? 'transparent' : '#fff', color: isWhiteNav ? textColor : '#2874f0', fontWeight: isWhiteNav ? 500 : 700, fontSize: 15, padding: isWhiteNav ? '6px 8px' : '6px 40px', borderRadius: 2, textDecoration: 'none', whiteSpace: 'nowrap', letterSpacing: 0.2 }}
                 >
                   Login
                 </Link>
@@ -185,9 +202,9 @@ export default function Navbar() {
             </div>
 
             {/* Become a Seller */}
-            {!isCartPage && (
-              <button style={{ color: '#fff', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2, whiteSpace: 'nowrap' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.13)'}
+            {!isCartPage && !isWhiteNav && (
+              <button style={{ color: textColor, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2, whiteSpace: 'nowrap' }}
+                onMouseEnter={e => e.currentTarget.style.background = hoverBg}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 Become a Seller
@@ -198,12 +215,12 @@ export default function Navbar() {
             {!isCartPage && (
               <div ref={moreMenuRef} style={{ position: 'relative' }}>
                 <button onClick={() => setShowMoreMenu(v => !v)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#fff', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2 }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.13)'}
+                  style={{ display: 'flex', alignItems: 'center', gap: 3, color: textColor, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2 }}
+                  onMouseEnter={e => e.currentTarget.style.background = hoverBg}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
                   More
-                  <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24" style={{ transform: showMoreMenu ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
+                  <svg width="14" height="14" fill="none" stroke={textColor} strokeWidth="2.5" viewBox="0 0 24 24" style={{ transform: showMoreMenu ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
                     <path d="m6 9 6 6 6-6"/>
                   </svg>
                 </button>
@@ -231,12 +248,12 @@ export default function Navbar() {
             {/* Cart */}
             {!isCartPage && (
               <Link href="/cart"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#fff', textDecoration: 'none', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2, position: 'relative' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.13)'}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, color: textColor, textDecoration: 'none', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2, position: 'relative' }}
+                onMouseEnter={e => e.currentTarget.style.background = hoverBg}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <span style={{ position: 'relative' }}>
-                  <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <svg width="22" height="22" fill="none" stroke={textColor} strokeWidth="1.8" viewBox="0 0 24 24">
                     <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
                   </svg>
                   {cartCount > 0 && (
@@ -253,7 +270,7 @@ export default function Navbar() {
       </header>
 
       {/* ── Sub Nav / Category Bar ────────────────────── */}
-      {!isCartPage && <SubNav />}
+{!isCartPage && !isWhiteNav && <SubNav />}
     </>
   );
 }

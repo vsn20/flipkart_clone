@@ -12,17 +12,25 @@ function ProductsContent() {
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [brandSearch, setBrandSearch] = useState('');
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   const [filters, setFilters] = useState({
-    category: categorySlug, min_price: '', max_price: '', min_rating: '', sort: 'rating', search: searchQuery, page: 1,
+    category: categorySlug, min_price: '', max_price: '', min_rating: '', brand: '', sort: 'rating', search: searchQuery, page: 1,
   });
 
   useEffect(() => { categoriesAPI.getAll().then(r => setCategories(r.data.categories || [])); }, []);
   useEffect(() => { setFilters(p => ({ ...p, search: searchQuery, category: categorySlug, page: 1 })); }, [searchQuery, categorySlug]);
   useEffect(() => { fetchProducts(); }, [filters]);
+
+  // Fetch brands whenever category changes
+  useEffect(() => {
+    const activeCategory = categories.find(c => c.slug === filters.category);
+    productsAPI.getBrands(activeCategory?.id).then(r => setBrands(r.data.brands || [])).catch(() => setBrands([]));
+  }, [filters.category, categories]);
 
   async function fetchProducts() {
     setLoading(true);
@@ -33,6 +41,7 @@ function ProductsContent() {
       if (filters.min_price) params.min_price = filters.min_price;
       if (filters.max_price) params.max_price = filters.max_price;
       if (filters.min_rating) params.min_rating = filters.min_rating;
+      if (filters.brand) params.brand = filters.brand;
       if (filters.sort) params.sort = filters.sort;
       const res = await productsAPI.getAll(params);
       setProducts(res.data.products || []);
@@ -136,13 +145,37 @@ function ProductsContent() {
 
       {/* BRAND */}
       <FilterSection title="BRAND">
-        <input type="text" placeholder="Search Brand" style={{ width: '100%', border: '1px solid #c2c2c2', borderRadius: 2, padding: '6px 10px', fontSize: 12, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }}/>
-        {['Apple','Samsung','OnePlus','Nike','Sony','LG','Realme','POCO'].map(b => (
-          <label key={b} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
-            <input type="checkbox" style={{ accentColor: '#2874f0', width: 14, height: 14 }}/>
-            <span style={{ fontSize: 13, color: '#555' }}>{b}</span>
-          </label>
-        ))}
+        <input type="text" placeholder="Search Brand" value={brandSearch} onChange={e => setBrandSearch(e.target.value)}
+          style={{ width: '100%', border: '1px solid #c2c2c2', borderRadius: 2, padding: '6px 10px', fontSize: 12, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }}/>
+        {brands
+          .filter(b => b.toLowerCase().includes(brandSearch.toLowerCase()))
+          .slice(0, 10)
+          .map(b => {
+            const selectedBrands = filters.brand ? filters.brand.split(',') : [];
+            const isChecked = selectedBrands.includes(b);
+            return (
+              <label key={b} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
+                <input type="checkbox" checked={isChecked}
+                  onChange={() => {
+                    let next;
+                    if (isChecked) {
+                      next = selectedBrands.filter(x => x !== b).join(',');
+                    } else {
+                      next = [...selectedBrands, b].join(',');
+                    }
+                    setFilters(p => ({ ...p, brand: next, page: 1 }));
+                  }}
+                  style={{ accentColor: '#2874f0', width: 14, height: 14 }}/>
+                <span style={{ fontSize: 13, color: '#555' }}>{b}</span>
+              </label>
+            );
+          })}
+        {filters.brand && (
+          <button onClick={() => setFilters(p => ({ ...p, brand: '', page: 1 }))}
+            style={{ fontSize: 12, color: '#2874f0', background: 'none', border: 'none', cursor: 'pointer', marginTop: 6, padding: 0 }}>
+            Clear brand filter
+          </button>
+        )}
       </FilterSection>
 
       {/* ASSURED */}
@@ -210,7 +243,7 @@ function ProductsContent() {
 
           {/* Products Grid */}
           {loading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: '#f0f0f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, background: '#f0f0f0' }}>
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} style={{ background: '#fff', padding: 16 }}>
                   <div style={{ paddingBottom: '100%', background: '#f5f5f5', marginBottom: 10 }}/>
