@@ -31,6 +31,7 @@ export default function CheckoutPage() {
 
   const productId = searchParams.get('product_id');
   const queryAddressId = searchParams.get('address_id');
+  const isDirectCheckout = Boolean(productId);
 
   useEffect(() => { if (!isAuthenticated) router.push('/login'); }, [isAuthenticated, router]);
 
@@ -55,28 +56,36 @@ export default function CheckoutPage() {
     });
   }, [queryAddressId]);
 
-  const items = directItem? [directItem] : (cart?.items || []);
-  const item = items[0];
-  if (!item) return <div style={{padding:60, textAlign:'center', background:'#f1f3f6', minHeight:'100vh'}}>Loading...</div>;
+  const items = isDirectCheckout ? (directItem ? [directItem] : []) : (cart?.items || []);
+  if (items.length === 0) return <div style={{padding:60, textAlign:'center', background:'#f1f3f6', minHeight:'100vh'}}>Loading...</div>;
 
   const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0];
-  const qty = Number(item.quantity) || 1; // FIX NaN
+  const totals = items.reduce(
+    (acc, cartItem) => {
+      const qty = Number(cartItem.quantity) || 1;
+      const product = cartItem.product || {};
+      const unitMrp = parseFloat(product.mrp) || 0;
+      const unitPrice = parseFloat(product.price) || 0;
+      acc.mrp += unitMrp * qty;
+      acc.price += unitPrice * qty;
+      return acc;
+    },
+    { mrp: 0, price: 0 }
+  );
 
-  // FIX: multiply by quantity
-  const mrp = parseFloat(item.product.mrp) * qty;
-  const price = parseFloat(item.product.price) * qty;
+  const mrp = totals.mrp;
+  const price = totals.price;
   const discount = mrp - price;
   const fee = 36;
   const total = price + fee;
   const save = discount - fee;
 
-  const handleQtyChange = async (newQty) => {
+  const handleQtyChange = async (cartItem, newQty) => {
     const n = parseInt(newQty);
-    if (directItem) {
-      setDirectItem({...directItem, quantity: n});
+    if (isDirectCheckout) {
+      setDirectItem((prev) => (prev ? { ...prev, quantity: n } : prev));
     } else {
-      await updateQuantity(item.id, n);
-      fetchCart();
+      await updateQuantity(cartItem.id, n);
     }
   };
 
@@ -93,8 +102,12 @@ export default function CheckoutPage() {
         shipping_pincode: selectedAddress.pincode,
         payment_method: paymentMethod
       };
-      const res = directItem
-      ? await ordersAPI.placeDirect({...payload, product_id: item.product.id, quantity: qty})
+      const res = isDirectCheckout
+      ? await ordersAPI.placeDirect({
+          ...payload,
+          product_id: directItem.product.id,
+          quantity: Number(directItem.quantity) || 1,
+        })
         : await ordersAPI.place(payload);
       toast.success('Order placed!');
       router.push(`/order-confirmation/${res.data.order.id}`);
@@ -105,8 +118,11 @@ export default function CheckoutPage() {
   const goToPayment = () => {
     const params = new URLSearchParams();
     if (selectedAddress) params.set('address_id', selectedAddress.id);
-    if (productId) params.set('product_id', productId);
-    if (qty > 1) params.set('qty', qty);
+    if (isDirectCheckout) {
+      params.set('product_id', productId);
+      const qty = Number(directItem?.quantity) || 1;
+      if (qty > 1) params.set('qty', qty);
+    }
     router.push(`/checkout/payment?${params.toString()}`);
   };
 
@@ -148,32 +164,44 @@ export default function CheckoutPage() {
           </div>
 
           <div style={{background:'#fff', padding: isMobile ? '12px' : '20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
-            <div style={{display:'flex', gap: isMobile ? 12 : 24}}>
-              <img src={item.product.images?.[0]} alt="" style={{width: isMobile ? 60 : 90, height: isMobile ? 75 : 110, objectFit:'contain', flexShrink: 0}}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:16, fontWeight:500, marginBottom:4}}>{item.product.name}</div>
-                <div style={{fontSize:14, color:'#878787', marginBottom:8}}>{item.product.color || 'Standard'}</div>
-                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
-                  <div style={{display:'flex', alignItems:'center', gap:2}}>
-                    {[...Array(5)].map((_,i)=><span key={i} style={{color:i<Math.round(parseFloat(item.product.rating)||4)?'#388e3c':'#e0e0e0', fontSize:16}}>★</span>)}
-                    <span style={{marginLeft:4, fontSize:14, color:'#878787'}}>{parseFloat(item.product.rating||4).toFixed(1)}</span>
+            {items.map((cartItem, idx) => {
+              const product = cartItem.product || {};
+              const qty = Number(cartItem.quantity) || 1;
+              const unitMrp = parseFloat(product.mrp) || 0;
+              const unitPrice = parseFloat(product.price) || 0;
+              const pct = unitMrp > 0 ? Math.round(((unitMrp - unitPrice) / unitMrp) * 100) : 0;
+
+              return (
+                <div key={`${product.id || 'item'}-${idx}`} style={{ borderBottom: idx < items.length - 1 ? '1px solid #f0f0f0' : 'none', paddingBottom: idx < items.length - 1 ? 16 : 0, marginBottom: idx < items.length - 1 ? 16 : 0 }}>
+                  <div style={{display:'flex', gap: isMobile ? 12 : 24}}>
+                    <img src={product.images?.[0]} alt="" style={{width: isMobile ? 60 : 90, height: isMobile ? 75 : 110, objectFit:'contain', flexShrink: 0}}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:16, fontWeight:500, marginBottom:4}}>{product.name}</div>
+                      <div style={{fontSize:14, color:'#878787', marginBottom:8}}>{product.color || 'Standard'}</div>
+                      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
+                        <div style={{display:'flex', alignItems:'center', gap:2}}>
+                          {[...Array(5)].map((_,i)=><span key={i} style={{color:i<Math.round(parseFloat(product.rating)||4)?'#388e3c':'#e0e0e0', fontSize:16}}>★</span>)}
+                          <span style={{marginLeft:4, fontSize:14, color:'#878787'}}>{parseFloat(product.rating||4).toFixed(1)}</span>
+                        </div>
+                        <span style={{color:'#878787', fontSize:14}}>• ({(product.review_count||680).toLocaleString()})</span>
+                        <img src="https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/fa_62673a.png" alt="assured" style={{height:18, marginLeft:4}}/>
+                      </div>
+                      <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:6}}>
+                        <span style={{color:'#388e3c', fontSize:18, fontWeight:700}}>↓{pct}%</span>
+                        <span style={{color:'#878787', textDecoration:'line-through', fontSize:16}}>{formatPrice(unitMrp)}</span>
+                        <span style={{fontSize:22, fontWeight:700}}>{formatPrice(unitPrice)}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <select value={qty} onChange={e=>handleQtyChange(cartItem, e.target.value)} style={{padding:'6px 24px 6px 12px', border:'1px solid #e0e0e0', borderRadius:2, fontSize:14, background:'#fff', cursor:'pointer'}}>
+                        {[1,2,3,4,5,6,7,8,9,10].map(n=><option key={n} value={n}>Qty: {n}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <span style={{color:'#878787', fontSize:14}}>• ({(item.product.review_count||680).toLocaleString()})</span>
-                  <img src="https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/fa_62673a.png" alt="assured" style={{height:18, marginLeft:4}}/>
                 </div>
-                <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:6}}>
-                  <span style={{color:'#388e3c', fontSize:18, fontWeight:700}}>↓{Math.round((discount/mrp)*100)}%</span>
-                  <span style={{color:'#878787', textDecoration:'line-through', fontSize:16}}>{formatPrice(parseFloat(item.product.mrp))}</span>
-                  <span style={{fontSize:22, fontWeight:700}}>{formatPrice(parseFloat(item.product.price))}</span>
-                </div>
-                <div style={{fontSize:14, marginBottom:4}}>+ ₹{fee} Protect Promise Fee <span style={{color:'#878787', cursor:'pointer'}}>ⓘ</span></div>
-              </div>
-              <div>
-                <select value={qty} onChange={e=>handleQtyChange(e.target.value)} style={{padding:'6px 24px 6px 12px', border:'1px solid #e0e0e0', borderRadius:2, fontSize:14, background:'#fff', cursor:'pointer'}}>
-                  {[1,2,3,4,5,6,7,8,9,10].map(n=><option key={n} value={n}>Qty: {n}</option>)}
-                </select>
-              </div>
-            </div>
+              );
+            })}
+            <div style={{fontSize:14, marginBottom:4}}>+ ₹{fee} Protect Promise Fee <span style={{color:'#878787', cursor:'pointer'}}>ⓘ</span></div>
             <div style={{borderTop:'1px solid #f0f0f0', marginTop:16, paddingTop:16, display:'flex', alignItems:'center', gap:8}}>
               <span style={{fontSize:14}}>🚚</span>
               <span style={{fontSize:14, fontWeight:500}}>EXPRESS</span>

@@ -36,6 +36,7 @@ export default function PaymentPage() {
   const productId = searchParams.get('product_id');
   const addressId = searchParams.get('address_id');
   const qtyParam = searchParams.get('qty');
+  const isDirectCheckout = Boolean(productId);
 
   useEffect(() => { if (!isAuthenticated) router.push('/login'); }, [isAuthenticated, router]);
 
@@ -59,18 +60,29 @@ export default function PaymentPage() {
     });
   }, [addressId]);
 
-  const items = directItem ? [directItem] : (cart?.items || []);
-  const item = items[0];
+  const items = isDirectCheckout ? (directItem ? [directItem] : []) : (cart?.items || []);
 
-  if (!item) return (
+  if (items.length === 0) return (
     <div style={{background:'#f1f3f6', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>
       <div style={{width:40, height:40, border:'3px solid #f0f0f0', borderTop:'3px solid #2874f0', borderRadius:'50%', animation:'spin 1s linear infinite'}}/>
     </div>
   );
 
-  const qty = Number(item.quantity) || 1;
-  const mrp = parseFloat(item.product.mrp) * qty;
-  const price = parseFloat(item.product.price) * qty;
+  const totals = items.reduce(
+    (acc, cartItem) => {
+      const qty = Number(cartItem.quantity) || 1;
+      const product = cartItem.product || {};
+      const unitMrp = parseFloat(product.mrp) || 0;
+      const unitPrice = parseFloat(product.price) || 0;
+      acc.mrp += unitMrp * qty;
+      acc.price += unitPrice * qty;
+      return acc;
+    },
+    { mrp: 0, price: 0 }
+  );
+
+  const mrp = totals.mrp;
+  const price = totals.price;
   const discount = mrp - price;
   const fee = 19;
   const total = price + fee;
@@ -116,8 +128,12 @@ export default function PaymentPage() {
         shipping_pincode: selectedAddress.pincode,
         payment_method: paymentMethod
       };
-      const res = directItem
-        ? await ordersAPI.placeDirect({...payload, product_id: item.product.id, quantity: qty})
+      const res = isDirectCheckout
+        ? await ordersAPI.placeDirect({
+            ...payload,
+            product_id: directItem.product.id,
+            quantity: Number(directItem.quantity) || 1,
+          })
         : await ordersAPI.place(payload);
       toast.success('Payment successful! Order placed.');
       router.push(`/order-confirmation/${res.data.order.id}`);
