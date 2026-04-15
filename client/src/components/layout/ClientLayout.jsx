@@ -5,6 +5,7 @@ import Footer from './Footer';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
+  const isPaymentPage = pathname?.startsWith('/checkout/payment');
   
   // The homepage ("/") has its own custom header, so we don't show the standard Navbar
   if (pathname === '/') {
@@ -18,7 +19,7 @@ export default function ClientLayout({ children }) {
 
   return (
     <>
-      <Navbar />
+      {!isPaymentPage && <Navbar />}
       {children}
       <Footer />
     </>
