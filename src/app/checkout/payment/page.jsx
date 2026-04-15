@@ -20,6 +20,18 @@ export default function PaymentPage() {
   const [directItem, setDirectItem] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [expandedOption, setExpandedOption] = useState('cod');
+  const [isMobile, setIsMobile] = useState(false);
+  const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '' });
+  const [cardErrors, setCardErrors] = useState({});
+  const [giftForm, setGiftForm] = useState({ number: '', pin: '' });
+  const [giftErrors, setGiftErrors] = useState({});
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const productId = searchParams.get('product_id');
   const addressId = searchParams.get('address_id');
@@ -63,8 +75,36 @@ export default function PaymentPage() {
   const fee = 19;
   const total = price + fee;
 
+  const validateCard = () => {
+    const e = {};
+    const num = cardForm.number.replace(/\s/g, '');
+    if (!num) e.number = 'Card number is required';
+    else if (!/^\d{16}$/.test(num)) e.number = 'Enter valid 16-digit card number';
+    if (!cardForm.expiry) e.expiry = 'Expiry is required';
+    else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardForm.expiry)) e.expiry = 'Use MM/YY format';
+    if (!cardForm.cvv) e.cvv = 'CVV is required';
+    else if (!/^\d{3}$/.test(cardForm.cvv)) e.cvv = 'Enter 3-digit CVV';
+    setCardErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const validateGift = () => {
+    const e = {};
+    if (!giftForm.number.trim()) e.number = 'Gift card number is required';
+    if (!giftForm.pin.trim()) e.pin = 'PIN is required';
+    setGiftErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const handlePlace = async () => {
     if (!selectedAddress) return toast.error('No address selected');
+    // Validate card fields if card payment is selected
+    if (expandedOption === 'card') {
+      if (!validateCard()) return;
+    }
+    if (expandedOption === 'gift') {
+      if (!validateGift()) return;
+    }
     setPlacing(true);
     try {
       const payload = {
@@ -117,7 +157,7 @@ export default function PaymentPage() {
           </div>
         </div>
 
-        <div style={{display:'flex', gap:16, alignItems:'flex-start'}}>
+        <div style={{display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:16, alignItems:'flex-start'}}>
           {/* Left — Payment Options */}
           <div style={{flex:1, background:'#fff', boxShadow:'0 1px 4px rgba(0,0,0,.08)', overflow:'hidden'}}>
             {paymentOptions.map((opt, i) => (
@@ -146,7 +186,7 @@ export default function PaymentPage() {
 
                 {/* Expanded content for COD */}
                 {expandedOption === opt.key && opt.key === 'cod' && (
-                  <div style={{padding:'16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
+                  <div style={{padding: isMobile ? '12px 12px 16px 12px' : '16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
                     <button
                       onClick={handlePlace}
                       disabled={placing}
@@ -163,13 +203,29 @@ export default function PaymentPage() {
 
                 {/* Expanded content for Card */}
                 {expandedOption === opt.key && opt.key === 'card' && (
-                  <div style={{padding:'16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
-                    <div style={{display:'flex', gap:12, marginBottom:16}}>
-                      <input type="text" placeholder="Card Number" style={{flex:1, padding:'10px 14px', border:'1px solid #c2c2c2', borderRadius:4, fontSize:14, outline:'none'}}/>
+                  <div style={{padding: isMobile ? '12px 12px 16px 12px' : '16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
+                    <div style={{marginBottom:16}}>
+                      <input type="text" placeholder="Card Number" value={cardForm.number}
+                        onChange={e => setCardForm({...cardForm, number: e.target.value})}
+                        maxLength={19}
+                        style={{width:'100%', padding:'10px 14px', border:`1px solid ${cardErrors.number ? '#ff6161' : '#c2c2c2'}`, borderRadius:4, fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                      {cardErrors.number && <p style={{fontSize:11, color:'#ff6161', marginTop:4}}>{cardErrors.number}</p>}
                     </div>
-                    <div style={{display:'flex', gap:12, marginBottom:16}}>
-                      <input type="text" placeholder="Valid Thru (MM/YY)" style={{flex:1, padding:'10px 14px', border:'1px solid #c2c2c2', borderRadius:4, fontSize:14, outline:'none'}}/>
-                      <input type="text" placeholder="CVV" style={{width:120, padding:'10px 14px', border:'1px solid #c2c2c2', borderRadius:4, fontSize:14, outline:'none'}}/>
+                    <div style={{display:'flex', gap:12, marginBottom:16, flexWrap: isMobile ? 'wrap' : 'nowrap'}}>
+                      <div style={{flex:1, minWidth: isMobile ? '100%' : 'auto'}}>
+                        <input type="text" placeholder="Valid Thru (MM/YY)" value={cardForm.expiry}
+                          onChange={e => setCardForm({...cardForm, expiry: e.target.value})}
+                          maxLength={5}
+                          style={{width:'100%', padding:'10px 14px', border:`1px solid ${cardErrors.expiry ? '#ff6161' : '#c2c2c2'}`, borderRadius:4, fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                        {cardErrors.expiry && <p style={{fontSize:11, color:'#ff6161', marginTop:4}}>{cardErrors.expiry}</p>}
+                      </div>
+                      <div style={{width: isMobile ? '100%' : 120}}>
+                        <input type="password" placeholder="CVV" value={cardForm.cvv}
+                          onChange={e => setCardForm({...cardForm, cvv: e.target.value})}
+                          maxLength={3}
+                          style={{width:'100%', padding:'10px 14px', border:`1px solid ${cardErrors.cvv ? '#ff6161' : '#c2c2c2'}`, borderRadius:4, fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                        {cardErrors.cvv && <p style={{fontSize:11, color:'#ff6161', marginTop:4}}>{cardErrors.cvv}</p>}
+                      </div>
                     </div>
                     <button
                       onClick={handlePlace}
@@ -187,7 +243,7 @@ export default function PaymentPage() {
 
                 {/* Expanded content for EMI */}
                 {expandedOption === opt.key && opt.key === 'emi' && (
-                  <div style={{padding:'16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
+                  <div style={{padding: isMobile ? '12px 12px 16px 12px' : '16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
                     <p style={{fontSize:14, color:'#878787', marginBottom:12}}>Select your bank for EMI options</p>
                     <button
                       onClick={handlePlace}
@@ -205,10 +261,20 @@ export default function PaymentPage() {
 
                 {/* Expanded content for Gift Card */}
                 {expandedOption === opt.key && opt.key === 'gift' && (
-                  <div style={{padding:'16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
-                    <div style={{display:'flex', gap:12, marginBottom:16}}>
-                      <input type="text" placeholder="Enter Gift Card Number" style={{flex:1, padding:'10px 14px', border:'1px solid #c2c2c2', borderRadius:4, fontSize:14, outline:'none'}}/>
-                      <input type="text" placeholder="PIN" style={{width:120, padding:'10px 14px', border:'1px solid #c2c2c2', borderRadius:4, fontSize:14, outline:'none'}}/>
+                  <div style={{padding: isMobile ? '12px 12px 16px 12px' : '16px 24px 20px 56px', background:'#f5faff', borderBottom:'1px solid #f0f0f0'}}>
+                    <div style={{display:'flex', gap:12, marginBottom:16, flexWrap: isMobile ? 'wrap' : 'nowrap'}}>
+                      <div style={{flex:1, minWidth: isMobile ? '100%' : 'auto'}}>
+                        <input type="text" placeholder="Enter Gift Card Number" value={giftForm.number}
+                          onChange={e => setGiftForm({...giftForm, number: e.target.value})}
+                          style={{width:'100%', padding:'10px 14px', border:`1px solid ${giftErrors.number ? '#ff6161' : '#c2c2c2'}`, borderRadius:4, fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                        {giftErrors.number && <p style={{fontSize:11, color:'#ff6161', marginTop:4}}>{giftErrors.number}</p>}
+                      </div>
+                      <div style={{width: isMobile ? '100%' : 120}}>
+                        <input type="text" placeholder="PIN" value={giftForm.pin}
+                          onChange={e => setGiftForm({...giftForm, pin: e.target.value})}
+                          style={{width:'100%', padding:'10px 14px', border:`1px solid ${giftErrors.pin ? '#ff6161' : '#c2c2c2'}`, borderRadius:4, fontSize:14, outline:'none', boxSizing:'border-box'}}/>
+                        {giftErrors.pin && <p style={{fontSize:11, color:'#ff6161', marginTop:4}}>{giftErrors.pin}</p>}
+                      </div>
                     </div>
                     <button
                       onClick={handlePlace}
@@ -228,7 +294,7 @@ export default function PaymentPage() {
           </div>
 
           {/* Right — Price Summary */}
-          <div style={{width:320, flexShrink:0}}>
+          <div style={{width: isMobile ? '100%' : 320, flexShrink:0}}>
             <div style={{background:'#fff', padding:'16px 20px', boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>
               <div style={{display:'flex', justifyContent:'space-between', padding:'10px 0', fontSize:14}}>
                 <span>MRP (incl. of all taxes)</span>

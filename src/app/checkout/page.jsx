@@ -20,6 +20,14 @@ export default function CheckoutPage() {
   const [showAddressDrawer, setShowAddressDrawer] = useState(false);
   const [directItem, setDirectItem] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('COD');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const productId = searchParams.get('product_id');
   const queryAddressId = searchParams.get('address_id');
@@ -105,14 +113,14 @@ export default function CheckoutPage() {
   return (
     <div style={{background:'#f1f3f6', minHeight:'100vh'}}>
       <div style={{background:'#fff', borderBottom:'1px solid #e0e0e0'}}>
-        <div style={{maxWidth:1100, margin:'0 auto', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap:40}}>
+        <div style={{maxWidth:1100, margin:'0 auto', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap: isMobile ? 12 : 40, flexWrap: isMobile ? 'wrap' : 'nowrap'}}>
           {[
             {l:'Address', done:true, active:false},
             {l:'Order Summary', active:true, done:false},
             {l:'Payment', active:false, done:false}
           ].map((s,i)=>(
             <div key={i} style={{display:'flex', alignItems:'center', gap:8}}>
-              {i>0 && <div style={{width:80, height:1, background:s.done||s.active||i===0?'#2874f0':'#e0e0e0', marginRight:8}}/>}
+              {i>0 && <div style={{width: isMobile ? 30 : 80, height:1, background:s.done||s.active||i===0?'#2874f0':'#e0e0e0', marginRight:8}}/>}
               <div style={{width:20,height:20,borderRadius:'50%',background:s.active?'#2874f0':'#fff',border:`2px solid ${s.active||s.done?'#2874f0':'#e0e0e0'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:s.active?'#fff':s.done?'#2874f0':'#878787'}}>{s.done?'✓':i+1}</div>
               <span style={{fontSize:13,color:s.active?'#000':'#878787',fontWeight:s.active?600:400}}>{s.l}</span>
             </div>
@@ -120,9 +128,9 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div style={{maxWidth:1100, margin:'0 auto', padding:'12px 16px', display:'flex', gap:16, alignItems:'flex-start'}}>
+      <div style={{maxWidth:1100, margin:'0 auto', padding:'12px 16px', display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:16, alignItems:'flex-start'}}>
         <div style={{flex:1}}>
-          <div style={{background:'#fff', padding:'16px 20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+          <div style={{background:'#fff', padding: isMobile ? '12px 14px' : '16px 20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
               <div style={{flex:1}}>
                 <div style={{fontSize:14, color:'#878787', marginBottom:8}}>Deliver to:</div>
@@ -139,9 +147,9 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div style={{background:'#fff', padding:'20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
-            <div style={{display:'flex', gap:24}}>
-              <img src={item.product.images?.[0]} alt="" style={{width:90, height:110, objectFit:'contain'}}/>
+          <div style={{background:'#fff', padding: isMobile ? '12px' : '20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+            <div style={{display:'flex', gap: isMobile ? 12 : 24}}>
+              <img src={item.product.images?.[0]} alt="" style={{width: isMobile ? 60 : 90, height: isMobile ? 75 : 110, objectFit:'contain', flexShrink: 0}}/>
               <div style={{flex:1}}>
                 <div style={{fontSize:16, fontWeight:500, marginBottom:4}}>{item.product.name}</div>
                 <div style={{fontSize:14, color:'#878787', marginBottom:8}}>{item.product.color || 'Standard'}</div>
@@ -188,7 +196,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div style={{width:330, flexShrink:0}}>
+        <div style={{width: isMobile ? '100%' : 330, flexShrink:0}}>
           <div style={{background:'#fff', padding:'16px', boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
             {[
               {l:'MRP', v:formatPrice(mrp), d:true},
@@ -216,15 +224,15 @@ export default function CheckoutPage() {
           </div>
 
           {/* Continue sticky bar */}
-          <div style={{background:'#fff', marginTop:12, padding:'12px 16px', boxShadow:'0 1px 2px rgba(0,0,0,.1)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', bottom:12}}>
+          <div style={{background:'#fff', marginTop:12, padding: isMobile ? '10px 12px' : '12px 16px', boxShadow:'0 1px 2px rgba(0,0,0,.1)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', bottom:12, gap: 12}}>
             <div>
               <div style={{fontSize:12, color:'#878787', textDecoration:'line-through'}}>{formatPrice(mrp)}</div>
-              <div style={{fontSize:20, fontWeight:600}}>{formatPrice(total)}</div>
+              <div style={{fontSize: isMobile ? 18 : 20, fontWeight:600}}>{formatPrice(total)}</div>
               <div style={{fontSize:11, color:'#2874f0', cursor:'pointer'}}>View price details</div>
             </div>
             <button
               onClick={goToPayment}
-              style={{background:'#fb641b', color:'#fff', border:'none', padding:'14px 40px', borderRadius:4, fontWeight:600, fontSize:16, cursor:'pointer'}}>
+              style={{background:'#fb641b', color:'#fff', border:'none', padding: isMobile ? '12px 24px' : '14px 40px', borderRadius:4, fontWeight:600, fontSize: isMobile ? 14 : 16, cursor:'pointer', whiteSpace:'nowrap'}}>
               CONTINUE
             </button>
           </div>
@@ -233,7 +241,7 @@ export default function CheckoutPage() {
 
       {showAddressDrawer && (
         <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:1000}} onClick={()=>setShowAddressDrawer(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{position:'absolute', right:0, top:0, bottom:0, width:420, background:'#fff', boxShadow:'-2px 0 8px rgba(0,0,0,.2)', display:'flex', flexDirection:'column'}}>
+          <div onClick={e=>e.stopPropagation()} style={{position:'absolute', right:0, top:0, bottom:0, width: isMobile ? '100%' : 420, background:'#fff', boxShadow:'-2px 0 8px rgba(0,0,0,.2)', display:'flex', flexDirection:'column'}}>
             <div style={{padding:'18px 20px', borderBottom:'1px solid #f0f0', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
               <h3 style={{fontSize:18, fontWeight:500}}>Select delivery address</h3>
               <button onClick={()=>setShowAddressDrawer(false)} style={{background:'none', border:'none', fontSize:24, cursor:'pointer', color:'#878787'}}>×</button>

@@ -175,6 +175,14 @@ export default function CategoryPage() {
 
 function BannerCarousel({ banners }) {
   const [banner, setBanner] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setBanner(p => (p + 1) % banners.length), 4500);
@@ -182,23 +190,23 @@ function BannerCarousel({ banners }) {
   }, [banners.length]);
 
   return (
-    <div style={{ position: 'relative', height: 280, overflow: 'hidden', background: banners[banner].bg, margin: '8px 0', borderRadius: 4 }}>
-      <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 40px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ position: 'relative', height: isMobile ? 180 : 280, overflow: 'hidden', background: banners[banner].bg, margin: '8px 0', borderRadius: 4 }}>
+      <div style={{ maxWidth: 1300, margin: '0 auto', padding: isMobile ? '0 16px' : '0 40px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ background: '#ffe500', color: '#212121', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 2, display: 'inline-block', marginBottom: 14, letterSpacing: 0.5 }}>
+          <div style={{ background: '#ffe500', color: '#212121', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 2, display: 'inline-block', marginBottom: isMobile ? 8 : 14, letterSpacing: 0.5 }}>
             HOT DEAL
           </div>
-          <h2 style={{ color: '#fff', fontSize: 36, fontWeight: 800, lineHeight: 1.2, marginBottom: 10 }}>
+          <h2 style={{ color: '#fff', fontSize: isMobile ? 22 : 36, fontWeight: 800, lineHeight: 1.2, marginBottom: isMobile ? 6 : 10 }}>
             {banners[banner].title}
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, marginBottom: 8 }}>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: isMobile ? 13 : 16, marginBottom: isMobile ? 4 : 8 }}>
             {banners[banner].subtitle}
           </p>
-          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: isMobile ? 12 : 14 }}>
             {banners[banner].detail}
           </p>
         </div>
-        {banners[banner].img && (
+        {!isMobile && banners[banner].img && (
           <img src={banners[banner].img} alt="" style={{ height: 240, objectFit: 'cover', borderRadius: 4, opacity: 0.9 }}
             onError={e => e.target.style.display = 'none'}/>
         )}

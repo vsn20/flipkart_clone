@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '' });
 
@@ -19,9 +20,24 @@ export default function LoginPage() {
 
   if (isAuthenticated) return null;
 
+  const validate = () => {
+    const e = {};
+    if (!formData.email.trim()) e.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) e.email = 'Enter a valid email';
+    if (!formData.password) e.password = 'Password is required';
+    else if (formData.password.length < 6) e.password = 'Min 6 characters';
+    if (!isLogin) {
+      if (!formData.name.trim()) e.name = 'Name is required';
+      if (formData.phone && !/^\d{10}$/.test(formData.phone.trim())) e.phone = 'Enter valid 10-digit number';
+    }
+    setFieldErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!validate()) return;
     setLoading(true);
     const result = isLogin
       ? await login(formData.email, formData.password)
@@ -46,8 +62,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#f1f3f6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px' }}>
-      <div style={{ display: 'flex', maxWidth: 750, width: '100%', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,.15)', borderRadius: 2, overflow: 'hidden', minHeight: 500 }}>
+    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#f1f3f6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 12px' }}>
+      <div style={{ display: 'flex', maxWidth: 750, width: '100%', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,.15)', borderRadius: 2, overflow: 'hidden', minHeight: 480 }}>
 
         {/* Left Panel – Blue */}
         <div style={{ background: '#2874f0', width: '40%', padding: '36px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexShrink: 0 }} className="hidden-mobile">
@@ -75,29 +91,33 @@ export default function LoginPage() {
         </div>
 
         {/* Right Panel – Form */}
-        <div style={{ flex: 1, padding: '32px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ flex: 1, padding: '24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
           <form onSubmit={handleSubmit}>
             {/* Name (signup) */}
             {!isLogin && (
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                required={!isLogin}
-                style={{ width: '100%', borderBottom: '1px solid #c2c2c2', borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', marginBottom: 20, boxSizing: 'border-box' }}
-              />
+              <div style={{ marginBottom: 20 }}>
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  style={{ width: '100%', borderBottom: `1px solid ${fieldErrors.name ? '#ff6161' : '#c2c2c2'}`, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                />
+                {fieldErrors.name && <p style={{ fontSize: 11, color: '#ff6161', marginTop: 4 }}>{fieldErrors.name}</p>}
+              </div>
             )}
 
             {/* Email */}
-            <input
-              type="email"
-              placeholder="Enter Email"
-              value={formData.email}
-              onChange={e => setFormData({ ...formData, email: e.target.value })}
-              required
-              style={{ width: '100%', borderBottom: '1px solid #c2c2c2', borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', marginBottom: 20, boxSizing: 'border-box' }}
-            />
+            <div style={{ marginBottom: 20 }}>
+              <input
+                type="email"
+                placeholder="Enter Email"
+                value={formData.email}
+                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                style={{ width: '100%', borderBottom: `1px solid ${fieldErrors.email ? '#ff6161' : '#c2c2c2'}`, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+              />
+              {fieldErrors.email && <p style={{ fontSize: 11, color: '#ff6161', marginTop: 4 }}>{fieldErrors.email}</p>}
+            </div>
 
             {/* Password */}
             <div style={{ position: 'relative', marginBottom: 20 }}>
@@ -106,25 +126,27 @@ export default function LoginPage() {
                 placeholder="Enter Password"
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
-                required
-                minLength={6}
-                style={{ width: '100%', borderBottom: '1px solid #c2c2c2', borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', borderBottom: `1px solid ${fieldErrors.password ? '#ff6161' : '#c2c2c2'}`, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
               />
               <button type="button" onClick={() => setShowPassword(v => !v)}
                 style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#2874f0', fontSize: 13, fontWeight: 600 }}>
                 {showPassword ? 'Hide' : 'Show'}
               </button>
+              {fieldErrors.password && <p style={{ fontSize: 11, color: '#ff6161', marginTop: 4 }}>{fieldErrors.password}</p>}
             </div>
 
             {/* Phone (signup) */}
             {!isLogin && (
-              <input
-                type="tel"
-                placeholder="Mobile Number (optional)"
-                value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                style={{ width: '100%', borderBottom: '1px solid #c2c2c2', borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', marginBottom: 20, boxSizing: 'border-box' }}
-              />
+              <div style={{ marginBottom: 20 }}>
+                <input
+                  type="tel"
+                  placeholder="Mobile Number (optional)"
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  style={{ width: '100%', borderBottom: `1px solid ${fieldErrors.phone ? '#ff6161' : '#c2c2c2'}`, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '10px 0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                />
+                {fieldErrors.phone && <p style={{ fontSize: 11, color: '#ff6161', marginTop: 4 }}>{fieldErrors.phone}</p>}
+              </div>
             )}
 
             {error && <p style={{ color: '#ff6161', fontSize: 13, marginBottom: 10 }}>{error}</p>}
@@ -172,7 +194,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <button onClick={() => { setIsLogin(v => !v); setFormData({ name: '', email: '', password: '', phone: '' }); setError(''); }}
+          <button onClick={() => { setIsLogin(v => !v); setFormData({ name: '', email: '', password: '', phone: '' }); setError(''); setFieldErrors({}); }}
             style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#2874f0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none' }}
             onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
             onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}

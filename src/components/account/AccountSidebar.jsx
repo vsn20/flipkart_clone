@@ -2,14 +2,133 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useState, useEffect } from 'react';
 
 export default function AccountSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const isActive = (path) => pathname === path;
 
+  const menuSections = [
+    {
+      title: 'MY ORDERS',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-6 14H6v-2h8v2zm4-4H6v-2h12v2zm0-4H6V6h12v2z"/></svg>,
+      items: [{ label: 'My Orders', href: '/orders' }],
+    },
+    {
+      title: 'ACCOUNT SETTINGS',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
+      items: [
+        { label: 'Profile Information', href: '/account' },
+        { label: 'Manage Addresses', href: '/account/addresses' },
+        { label: 'PAN Card Information', href: '/account/pan' },
+      ],
+    },
+    {
+      title: 'PAYMENTS',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>,
+      items: [
+        { label: 'Gift Cards', href: '/account/gift-cards' },
+        { label: 'Saved UPI', href: '/account/saved-upi' },
+        { label: 'Saved Cards', href: '/account/saved-cards' },
+      ],
+    },
+    {
+      title: 'MY STUFF',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>,
+      items: [
+        { label: 'My Coupons', href: '/account/coupons' },
+        { label: 'My Reviews & Ratings', href: '/account/reviews' },
+        { label: 'All Notifications', href: '/account/notifications' },
+        { label: 'My Wishlist', href: '/wishlist' },
+      ],
+    },
+  ];
+
+  // Find current page label
+  const currentLabel = menuSections.flatMap(s => s.items).find(i => isActive(i.href))?.label || 'My Account';
+
+  // ── MOBILE: Dropdown bar ──
+  if (isMobile) {
+    return (
+      <div style={{ marginBottom: 12 }}>
+        {/* Dropdown trigger bar */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          style={{
+            width: '100%', background: '#fff', border: 'none', padding: '14px 16px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,.08)', borderRadius: 4,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#2874f0"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#212121' }}>{currentLabel}</span>
+          </div>
+          <svg width="16" height="16" fill="none" stroke="#878787" strokeWidth="2" viewBox="0 0 24 24"
+            style={{ transform: mobileMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </button>
+
+        {/* Dropdown menu */}
+        {mobileMenuOpen && (
+          <div style={{ background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,.12)', borderRadius: '0 0 8px 8px', overflow: 'hidden', marginTop: -2 }}>
+            {/* User info */}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: 10, background: '#fafafa' }}>
+              <img src="https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/profile-pic-male_4811a1.svg" alt="Profile" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+              <div>
+                <p style={{ fontSize: 12, color: '#878787' }}>Hello,</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#212121' }}>{user?.name || 'User'}</p>
+              </div>
+            </div>
+
+            {menuSections.map((section, si) => (
+              <div key={si} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                {section.items.map(item => (
+                  <Link key={item.href} href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                      fontSize: 14, textDecoration: 'none',
+                      color: isActive(item.href) ? '#2874f0' : '#212121',
+                      fontWeight: isActive(item.href) ? 600 : 400,
+                      background: isActive(item.href) ? '#f5faff' : 'transparent',
+                      borderLeft: isActive(item.href) ? '3px solid #2874f0' : '3px solid transparent',
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            ))}
+
+            {/* Logout */}
+            <button
+              onClick={() => { logout(); router.push('/login'); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#ff6161' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff6161"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg>
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── DESKTOP: Original sidebar ──
   return (
     <div style={{ width: 250, flexShrink: 0 }}>
       <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)' }}>
@@ -117,10 +236,7 @@ export default function AccountSidebar() {
 
         {/* LOGOUT */}
         <div 
-          onClick={() => {
-            logout();
-            router.push('/login');
-          }}
+          onClick={() => { logout(); router.push('/login'); }}
           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', cursor: 'pointer' }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg>

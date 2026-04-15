@@ -10,10 +10,18 @@ function CompareContent() {
   const router = useRouter();
   const baseId = searchParams.get('base_id');
 
-  const [slots, setSlots] = useState([null, null, null, null]); // up to 4 products
+  const [slots, setSlots] = useState([null, null, null, null]);
   const [sameCategoryProducts, setSameCategoryProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDiffOnly, setShowDiffOnly] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     if (!baseId) return;
@@ -115,9 +123,9 @@ function CompareContent() {
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 16px' }}>
         {/* Product Cards Row */}
         <div style={{ background: '#fff', padding: '20px 0', marginBottom: 4, boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0 }}>
-            {slots.map((product, idx) => (
-              <div key={idx} style={{ padding: '0 20px', borderRight: idx < 3 ? '1px solid #f0f0f0' : 'none', position: 'relative' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 0 }}>
+            {(isMobile ? slots.slice(0, 2) : slots).map((product, idx) => (
+              <div key={idx} style={{ padding: isMobile ? '0 12px' : '0 20px', borderRight: idx < (isMobile ? 1 : 3) ? '1px solid #f0f0f0' : 'none', position: 'relative' }}>
                 {product ? (
                   <div>
                     {/* Remove button (not for base) */}
@@ -217,7 +225,7 @@ function CompareContent() {
 
           {/* Brand row */}
           {shouldShowRow('Brand') && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '100px repeat(2, 1fr)' : '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
               <div style={{ padding: '12px 20px', fontSize: 13, color: '#878787', fontWeight: 500, background: '#fafafa' }}>Brand</div>
               {slots.map((p, i) => (
                 <div key={i} style={{ padding: '12px 20px', fontSize: 13, color: '#212121', borderLeft: '1px solid #f0f0f0' }}>
@@ -229,7 +237,7 @@ function CompareContent() {
 
           {/* Description row */}
           {shouldShowRow('Description') && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '100px repeat(2, 1fr)' : '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
               <div style={{ padding: '12px 20px', fontSize: 13, color: '#878787', fontWeight: 500, background: '#fafafa' }}>Description</div>
               {slots.map((p, i) => (
                 <div key={i} style={{ padding: '12px 20px', fontSize: 13, color: '#212121', borderLeft: '1px solid #f0f0f0', lineHeight: 1.5 }}>
@@ -246,7 +254,7 @@ function CompareContent() {
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#212121', margin: 0 }}>Specifications</h3>
               </div>
               {allSpecKeys.filter(k => shouldShowRow(k)).map(key => (
-                <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
+                <div key={key} style={{ display: 'grid', gridTemplateColumns: isMobile ? '100px repeat(2, 1fr)' : '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
                   <div style={{ padding: '12px 20px', fontSize: 13, color: '#878787', fontWeight: 500, background: '#fafafa' }}>{key}</div>
                   {slots.map((p, i) => (
                     <div key={i} style={{ padding: '12px 20px', fontSize: 13, color: '#212121', borderLeft: '1px solid #f0f0f0', lineHeight: 1.5 }}>
@@ -259,7 +267,7 @@ function CompareContent() {
           )}
 
           {/* Price comparison row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0', borderTop: '4px solid #f0f0f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '100px repeat(2, 1fr)' : '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0', borderTop: '4px solid #f0f0f0' }}>
             <div style={{ padding: '12px 20px', fontSize: 14, color: '#212121', fontWeight: 700, background: '#fafafa' }}>Price</div>
             {slots.map((p, i) => (
               <div key={i} style={{ padding: '12px 20px', fontSize: 15, color: '#212121', fontWeight: 600, borderLeft: '1px solid #f0f0f0' }}>
@@ -269,7 +277,7 @@ function CompareContent() {
           </div>
 
           {/* Rating row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '100px repeat(2, 1fr)' : '1fr repeat(4, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
             <div style={{ padding: '12px 20px', fontSize: 14, color: '#212121', fontWeight: 700, background: '#fafafa' }}>Rating</div>
             {slots.map((p, i) => (
               <div key={i} style={{ padding: '12px 20px', fontSize: 13, color: '#212121', borderLeft: '1px solid #f0f0f0' }}>

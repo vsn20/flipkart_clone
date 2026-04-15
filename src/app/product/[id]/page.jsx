@@ -25,6 +25,14 @@ export default function ProductDetailPage() {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -114,9 +122,9 @@ export default function ProductDetailPage() {
           <span style={{marginLeft:4}}>{product.name}</span>
         </div>
 
-        <div style={{display:'flex', gap: 32, alignItems:'flex-start'}}>
+        <div style={{display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 32, alignItems:'flex-start'}}>
           {/* LEFT - Image Grid */}
-          <div style={{flex: 1.5, display:'grid', gridTemplateColumns: '1fr 1fr', gap:16}}>
+          <div style={{flex: 1.5, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 8 : 16, width: isMobile ? '100%' : 'auto'}}>
             {images.slice(0,4).map((img,i)=>(
               <div key={i} style={{background:'#f7f7f7', borderRadius:12, overflow:'hidden', aspectRatio:'1/1', position:'relative'}}>
                 <img src={img} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
@@ -138,7 +146,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* RIGHT - Details */}
-          <div style={{flex: 1, minWidth: 380, maxWidth: 480, position:'sticky', top:12}}>
+          <div style={{flex: 1, minWidth: isMobile ? 0 : 380, maxWidth: isMobile ? '100%' : 480, position: isMobile ? 'relative' : 'sticky', top: isMobile ? 0 : 12, width: isMobile ? '100%' : 'auto'}}>
             <h1 style={{fontSize:20, fontWeight:400, color:'#212121', lineHeight:'28px', margin:'0 0 8px'}}>
               {product.name.length > 65 && !showFullName ? (
                 <>
@@ -271,7 +279,7 @@ export default function ProductDetailPage() {
         {similarProducts.length>0 && (
           <div style={{marginTop:16, paddingBottom:40, borderTop: '1px solid #f0f0f0', paddingTop: 24}}>
             <h2 style={{fontSize:20, fontWeight:600, color: '#212121', marginBottom:16}}>Similar Products</h2>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:16}}>
+            <div style={{display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,1fr)', gap: isMobile ? 8 : 16}}>
               {similarProducts.slice(0,5).map(p=> <ProductCard key={p.id} product={p}/>) }
             </div>
           </div>
@@ -282,7 +290,7 @@ export default function ProductDetailPage() {
       {showAddressModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowAddressModal(false)}>
-          <div style={{ background: '#fff', borderRadius: 4, width: 520, maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.2)' }}
+          <div style={{ background: '#fff', borderRadius: 4, width: isMobile ? '90vw' : 520, maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.2)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, color: '#212121' }}>Select Delivery Address</h3>

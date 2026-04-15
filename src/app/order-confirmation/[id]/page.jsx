@@ -108,7 +108,7 @@ export default function OrderDetailsPage() {
           <span className="text-[#212121]">{order.order_number}</span>
         </div>
 
-        <div className="flex gap-4 items-start">
+        <div className="flex flex-col md:flex-row gap-4 items-start">
           {/* LEFT */}
           <div className="flex-1 min-w-0">
             {/* Shared banner */}
@@ -268,7 +268,7 @@ export default function OrderDetailsPage() {
           </div>
 
           {/* RIGHT SIDEBAR */}
-          <div className="w-[340px] shrink-0">
+          <div className="w-full md:w-[340px] shrink-0">
             {/* Delivery details */}
             <div className="bg-white p-5 mb-3">
               <h2 className="text-[18px] font-[500] text-[#212121] mb-4" style={{fontFamily: 'serif'}}>Delivery details</h2>

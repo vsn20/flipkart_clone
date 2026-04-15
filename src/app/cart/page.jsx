@@ -16,9 +16,29 @@ export default function CartPage() {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [pincode, setPincode] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => { if (!isAuthenticated) router.push('/login'); }, [isAuthenticated, router]);
   useEffect(() => { fetchCart(); }, []);
+
+  // Auto-load addresses on mount so we always have a default
+  useEffect(() => {
+    if (isAuthenticated) {
+      addressAPI.getAll().then(res => {
+        const addrs = res.data.addresses || [];
+        setAddresses(addrs);
+        const def = addrs.find(a => a.is_default) || addrs[0];
+        if (def) setSelectedAddress(def.id);
+      }).catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   const openAddressModal = async () => {
     setShowAddressModal(true);
@@ -64,10 +84,10 @@ export default function CartPage() {
 
   return (
     <div style={{ background: '#f1f3f6', minHeight: '80vh', padding: '12px 0' }}>
-      <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 12px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+      <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 12px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, alignItems: 'flex-start' }}>
 
         {/* Left: Cart Items */}
-        <div style={{ flex: 1, minWidth: 0, maxWidth: '65%' }}>
+        <div style={{ flex: 1, minWidth: 0, maxWidth: isMobile ? '100%' : '65%', width: '100%' }}>
           {/* Tabs - exactly like Flipkart */}
 <div style={{ background: '#fff', display: 'flex', marginBottom: 8, height: 56, alignItems: 'center' }}>
   <button style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}>
@@ -141,7 +161,11 @@ export default function CartPage() {
             {!loading && items.length > 0 && (
               <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f0f0f0', position: 'sticky', bottom: 0, background: '#fff', boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }}>
                 <button
-                  onClick={() => router.push('/checkout')}
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    if (selectedAddress) params.set('address_id', selectedAddress);
+                    router.push(`/checkout${params.toString() ? '?' + params.toString() : ''}`);
+                  }}
                   style={{ background: '#fb641b', color: '#fff', border: 'none', borderRadius: 2, padding: '14px 56px', fontSize: 16, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,.2)', letterSpacing: 0.5 }}
                 >
                   PLACE ORDER
@@ -152,7 +176,7 @@ export default function CartPage() {
         </div>
 
         {/* Right: Price Details */}
-        <div style={{ width: '35%', minWidth: 300, flexShrink: 0 }}>
+        <div style={{ width: isMobile ? '100%' : '35%', minWidth: isMobile ? 'auto' : 300, flexShrink: 0 }}>
           <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)', position: 'sticky', top: 12 }}>
            <div style={{ padding: '14px 20px 8px 20px' }}>
               <h3 style={{ fontSize: 16, fontWeight: 500, color: '#212121' }}>Price details</h3>
@@ -208,7 +232,7 @@ export default function CartPage() {
       {showAddressModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowAddressModal(false)}>
-          <div style={{ background: '#fff', borderRadius: 4, width: 520, maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.2)' }}
+          <div style={{ background: '#fff', borderRadius: 4, width: isMobile ? '90vw' : 520, maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.2)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, color: '#212121' }}>Select Delivery Address</h3>

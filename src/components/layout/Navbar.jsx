@@ -29,9 +29,18 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const searchRef = useRef(null);
   const userMenuRef = useRef(null);
   const moreMenuRef = useRef(null);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -76,10 +85,10 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
     <>
       {/* ── Top Blue Bar ─────────────────────────────── */}
       <header style={{ background: navBg, position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 1px 6px rgba(0,0,0,.2)', borderBottom: bottomBorder }}>
-        <div style={{ maxWidth: 1300, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ maxWidth: 1300, margin: '0 auto', padding: isMobile ? '8px 10px' : '10px 16px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
 
           {/* Logo */}
-                   <Link href="/" style={{ textDecoration: 'none', minWidth: isWhiteNav ? 130 : 90, marginRight: 4 }}>
+                   <Link href="/" style={{ textDecoration: 'none', minWidth: isWhiteNav ? (isMobile ? 100 : 130) : (isMobile ? 60 : 90), marginRight: 4 }}>
             {isWhiteNav ? (
               <div style={{ background: '#ffe500', borderRadius: isWhiteNav ? 12 : 2, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, height: 38 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="#2874f0"><path d="M3 13h18v-2H3v2zm0 4h12v-2H3v2zm0-8v2h18V9H3z"/></svg>
@@ -102,7 +111,7 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
           </Link>
 
           {/* Search Bar */}
-          <div ref={searchRef} style={{ flex: 1, maxWidth: 590, position: 'relative' }}>
+          <div ref={searchRef} style={{ flex: 1, maxWidth: isMobile ? '100%' : 590, position: 'relative', order: isMobile ? 3 : 0, width: isMobile ? '100%' : 'auto' }}>
            <form onSubmit={handleSearch} style={{ display: 'flex', background: searchBg, borderRadius: isWhiteNav ? 10 : 2, overflow: 'hidden', border: searchBorder, boxShadow: isWhiteNav ? 'none' : '0 1px 3px rgba(0,0,0,.1)', height: isWhiteNav ? 38 : 'auto' }}>
               <input
                 type="text"
@@ -138,7 +147,7 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
           </div>
 
           {/* Right Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', marginRight: isCartPage ? '72px' : '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 2 : 4, marginLeft: 'auto', marginRight: isCartPage ? (isMobile ? '0' : '72px') : '0' }}>
 
             {/* Login / My Account */}
             <div ref={userMenuRef} style={{ position: 'relative' }}>
@@ -167,42 +176,67 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
 
               {/* User Dropdown */}
               {showUserMenu && isAuthenticated && (
-                <div style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,.18)', zIndex: 300, minWidth: 230, borderRadius: 2 }}>
-                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#212121' }}>{user?.name}</p>
-                    <p style={{ fontSize: 12, color: '#878787', marginTop: 2 }}>{user?.email}</p>
-                  </div>
-                  {[
-                    { href: '/account', icon: '👤', label: 'My Profile' },
-                    { href: '/account', icon: '🪙', label: 'SuperCoin Zone' },
-                    { href: '/flipkart-plus', icon: '✨', label: 'Flipkart Plus Zone' },
-                    { href: '/orders', icon: '📦', label: 'Orders' },
-                    { href: '/wishlist', icon: '❤️', label: 'Wishlist', badge: null },
-                    { href: '/', icon: '🏷️', label: 'Coupons' },
-                    { href: '/', icon: '🎁', label: 'Gift Cards' },
-                    { href: '/', icon: '🔔', label: 'Notifications' },
-                  ].map(item => (
-                    <Link key={item.label} href={item.href} onClick={() => setShowUserMenu(false)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', fontSize: 13, color: '#212121', textDecoration: 'none', borderBottom: '1px solid #f9f9f9' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f5faff'}
+                <div style={{ 
+                  position: isMobile ? 'fixed' : 'absolute', 
+                  right: isMobile ? 0 : 0, 
+                  left: isMobile ? 0 : 'auto',
+                  top: isMobile ? 0 : '110%', 
+                  bottom: isMobile ? 0 : 'auto',
+                  background: isMobile ? 'rgba(0,0,0,.5)' : 'transparent',
+                  zIndex: 9999,
+                }}>
+                  <div style={{
+                    background: '#fff', 
+                    boxShadow: '0 4px 20px rgba(0,0,0,.18)', 
+                    minWidth: isMobile ? '100%' : 230, 
+                    maxWidth: isMobile ? '100%' : 230,
+                    borderRadius: isMobile ? 0 : 2,
+                    maxHeight: isMobile ? '100vh' : 'auto',
+                    overflowY: 'auto',
+                  }}>
+                    {/* Close button on mobile */}
+                    {isMobile && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f0f0f0', background: '#2874f0' }}>
+                        <span style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>My Account</span>
+                        <button onClick={() => setShowUserMenu(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', lineHeight: 1 }}>×</button>
+                      </div>
+                    )}
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#212121' }}>{user?.name}</p>
+                      <p style={{ fontSize: 12, color: '#878787', marginTop: 2 }}>{user?.email}</p>
+                    </div>
+                    {[
+                      { href: '/account', icon: '👤', label: 'My Profile' },
+                      { href: '/account', icon: '🪙', label: 'SuperCoin Zone' },
+                      { href: '/flipkart-plus', icon: '✨', label: 'Flipkart Plus Zone' },
+                      { href: '/orders', icon: '📦', label: 'Orders' },
+                      { href: '/wishlist', icon: '❤️', label: 'Wishlist', badge: null },
+                      { href: '/', icon: '🏷️', label: 'Coupons' },
+                      { href: '/', icon: '🎁', label: 'Gift Cards' },
+                      { href: '/', icon: '🔔', label: 'Notifications' },
+                    ].map(item => (
+                      <Link key={item.label} href={item.href} onClick={() => setShowUserMenu(false)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#212121', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#f5faff'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >
+                        <span style={{ fontSize: isMobile ? 20 : 14 }}>{item.icon}</span>{item.label}
+                      </Link>
+                    ))}
+                    <button onClick={() => { logout(); setShowUserMenu(false); router.push('/'); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#ff6161', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#fff0f0'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
                     >
-                      <span>{item.icon}</span>{item.label}
-                    </Link>
-                  ))}
-                  <button onClick={() => { logout(); setShowUserMenu(false); router.push('/'); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 16px', fontSize: 13, color: '#ff6161', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#fff0f0'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                  >
-                    <span>🚪</span>Logout
-                  </button>
+                      <span style={{ fontSize: isMobile ? 20 : 14 }}>🚪</span>Logout
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Become a Seller */}
-            {!isCartPage && !isWhiteNav && (
+            {!isCartPage && !isWhiteNav && !isMobile && (
               <button style={{ color: textColor, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2, whiteSpace: 'nowrap' }}
                 onMouseEnter={e => e.currentTarget.style.background = hoverBg}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
@@ -212,7 +246,7 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
             )}
 
             {/* More */}
-            {!isCartPage && (
+            {!isCartPage && !isMobile && (
               <div ref={moreMenuRef} style={{ position: 'relative' }}>
                 <button onClick={() => setShowMoreMenu(v => !v)}
                   style={{ display: 'flex', alignItems: 'center', gap: 3, color: textColor, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 15, fontWeight: 600, borderRadius: 2 }}
@@ -270,7 +304,7 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
       </header>
 
       {/* ── Sub Nav / Category Bar ────────────────────── */}
-{!isCartPage && !isWhiteNav && <SubNav />}
+{!isCartPage && !isWhiteNav && !isMobile && <SubNav />}
     </>
   );
 }

@@ -17,6 +17,14 @@ export default function WishlistPage() {
   const [wishlist, setWishlist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -61,9 +69,9 @@ export default function WishlistPage() {
 
   return (
     <div style={{ background: '#f1f3f6', minHeight: 'calc(100vh - 120px)', padding: '16px 0' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 12px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 12px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 0 : 16, alignItems: 'flex-start' }}>
         <AccountSidebar />
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
           {/* Header */}
           <div style={{ background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.05)', borderRadius: 2, marginBottom: 12, padding: '16px' }}>
           <h1 style={{ fontSize: 18, fontWeight: 600, color: '#212121', margin: 0 }}>

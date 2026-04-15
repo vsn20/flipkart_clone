@@ -25,6 +25,15 @@ function ProductsContent() {
     min_price: '', max_price: '', min_rating: '', brand: '', color: '',
     sort: 'rating', search: searchQuery, page: 1,
   });
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Fetch category tree on mount
   useEffect(() => {
@@ -303,10 +312,27 @@ function ProductsContent() {
     <div style={{ background: '#f1f3f6', minHeight: '80vh', padding: '8px 0' }}>
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 8px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
 
-        {/* Sidebar */}
-        <div style={{ width: 230, flexShrink: 0 }}>
-          <Sidebar />
-        </div>
+        {/* Sidebar - Desktop */}
+        {!isMobile && (
+          <div style={{ width: 230, flexShrink: 0 }}>
+            <Sidebar />
+          </div>
+        )}
+
+        {/* Mobile Filter Overlay */}
+        {isMobile && showMobileFilters && (
+          <>
+            <div onClick={() => setShowMobileFilters(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000 }} />
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '85vw', maxWidth: 320, height: '100vh', zIndex: 1001, overflowY: 'auto', background: '#fff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #e0e0e0' }}>
+                <span style={{ fontSize: 16, fontWeight: 700 }}>Filters</span>
+                <button onClick={() => setShowMobileFilters(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#878787' }}>&times;</button>
+              </div>
+              <Sidebar />
+            </div>
+          </>
+        )}
 
         {/* Main */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -351,12 +377,20 @@ function ProductsContent() {
           <div style={{
             background: '#fff', display: 'flex', alignItems: 'center', padding: '0 16px',
             borderBottom: '2px solid #f0f0f0', boxShadow: '0 1px 2px rgba(0,0,0,.04)',
+            overflowX: 'auto', scrollbarWidth: 'none', gap: isMobile ? 0 : undefined,
           }}>
+            {isMobile && (
+              <button onClick={() => setShowMobileFilters(true)}
+                style={{ padding: '10px 14px', fontSize: 13, fontWeight: 600, color: '#212121', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, borderRight: '1px solid #e0e0e0', marginRight: 8 }}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 21V14M4 10V3M12 21V12M12 8V3M20 21V16M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+                Filters
+              </button>
+            )}
             <span style={{ fontSize: 14, fontWeight: 600, color: '#212121', paddingRight: 12, whiteSpace: 'nowrap' }}>Sort By</span>
             {sortOptions.map(opt => (
               <button key={opt.value} onClick={() => setFilters(p => ({ ...p, sort: opt.value }))}
                 style={{
-                  padding: '12px 14px', fontSize: 14, background: 'none', border: 'none',
+                  padding: isMobile ? '10px 10px' : '12px 14px', fontSize: isMobile ? 12 : 14, background: 'none', border: 'none',
                   cursor: 'pointer', whiteSpace: 'nowrap',
                   color: filters.sort === opt.value ? '#2874f0' : '#212121',
                   fontWeight: filters.sort === opt.value ? 600 : 400,
@@ -369,7 +403,7 @@ function ProductsContent() {
 
           {/* Products Grid */}
           {loading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1px', background: '#f1f3f6', width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: '1px', background: '#f1f3f6', width: '100%' }}>
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} style={{ background: '#fff', padding: 16 }}>
                   <div style={{ paddingBottom: '100%', background: '#f5f5f5', marginBottom: 10 }}/>
@@ -386,8 +420,7 @@ function ProductsContent() {
             </div>
           ) : (
             <>
-              {/* CSS Grid – 4 columns, 1px gap = #f1f3f6 background showing through */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1px', background: '#f1f3f6' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: '1px', background: '#f1f3f6' }}>
                 {products.map(p => <ProductCard key={p.id} product={p}/>)}
               </div>
 

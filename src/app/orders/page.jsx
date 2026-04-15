@@ -108,9 +108,9 @@ export default function OrdersPage() {
           )}
         </div>
 
-        <div className="flex gap-3 items-start">
+        <div className="flex flex-col md:flex-row gap-3 items-start">
           {/* LEFT SIDEBAR */}
-          <aside className="w-[270px] shrink-0 bg-white shadow-sm">
+          <aside className="hidden md:block w-[270px] shrink-0 bg-white shadow-sm">
             <div className="border-b border-[#f0f0f0]">
               <div className="flex items-center justify-between px-4 h-[52px]">
                 <h2 className="text-[18px] font-[500] text-[#212121]">Filters</h2>
@@ -186,17 +186,17 @@ export default function OrdersPage() {
           {/* RIGHT CONTENT */}
           <div className="flex-1 min-w-0">
             {/* Search Bar */}
-            <div className="bg-white border border-[#dbdbdb] mb-3 flex h-[52px] shadow-sm">
+            <div className="bg-white border border-[#dbdbdb] mb-3 flex h-[48px] md:h-[52px] shadow-sm">
               <input
                 type="text"
                 placeholder="Search your orders here"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 text-[14px] text-[#212121] placeholder-[#878787] outline-none bg-transparent"
+                className="flex-1 px-3 md:px-4 text-[13px] md:text-[14px] text-[#212121] placeholder-[#878787] outline-none bg-transparent min-w-0"
               />
-              <button className="bg-[#2874f0] hover:bg-[#1a68e8] text-white px-8 flex items-center gap-2 text-[14px] font-[500] transition-colors shrink-0">
+              <button className="bg-[#2874f0] hover:bg-[#1a68e8] text-white px-4 md:px-8 flex items-center gap-2 text-[14px] font-[500] transition-colors shrink-0">
                 <FiSearch size={18} />
-                <span>Search Orders</span>
+                <span className="hidden md:inline">Search Orders</span>
               </button>
             </div>
 
@@ -250,14 +250,14 @@ export default function OrdersPage() {
                         <Link
                           key={item.id}
                           href={`/order-confirmation/${order.id}?item=${item.id}`}
-                          className="order-item-card flex items-center bg-white border border-[#e0e0e0] rounded-lg px-5 py-2 -mr-[80px]"
+                          className="order-item-card flex flex-wrap md:flex-nowrap items-center bg-white border border-[#e0e0e0] rounded-lg px-3 md:px-5 py-2 md:-mr-[80px]"
                         >
                           {/* Product Image */}
-                          <div className="w-[96px] h-[96px] flex items-center justify-center shrink-0 mr-5">
+                          <div className="w-[60px] h-[60px] md:w-[96px] md:h-[96px] flex items-center justify-center shrink-0 mr-3 md:mr-5">
                             <img
                               src={item.product_image || item.product?.images?.[0] || 'https://via.placeholder.com/80'}
                               alt={item.product_name}
-                              className="max-w-[80px] max-h-[80px] object-contain"
+                              className="max-w-[50px] max-h-[50px] md:max-w-[80px] md:max-h-[80px] object-contain"
                             />
                           </div>
 
@@ -273,7 +273,7 @@ export default function OrdersPage() {
                           </div>
 
                           {/* Price */}
-                          <div className="w-[150px] shrink-0 pr-4">
+                          <div className="w-auto md:w-[150px] shrink-0 pr-2 md:pr-4">
                             <div className="text-[14px] font-[500] text-[#212121] flex items-center gap-1">
                               <span>₹{item.price?.toLocaleString('en-IN')}</span>
                               {item.supercoins && (
@@ -287,7 +287,7 @@ export default function OrdersPage() {
                           </div>
 
                           {/* Status */}
-                          <div className="w-[300px] shrink-0">
+                          <div className="w-full md:w-[300px] shrink-0 mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#f0f0f0]">
                             <div className="flex items-start gap-2">
                               <span
                                 className="w-[10px] h-[10px] rounded-full mt-[5px] shrink-0"

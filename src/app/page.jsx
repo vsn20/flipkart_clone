@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { productsAPI, categoriesAPI } from '@/lib/api';
+import { productsAPI, categoriesAPI, addressAPI } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/lib/utils';
@@ -18,8 +18,9 @@ const HOMEPAGE_TABS = [
   { key: 'appliances', label: 'Appliances', icon: '🔌' },
   { key: 'toys', label: 'Toys, ba...', icon: '🧸' },
   { key: 'sports', label: 'Sports &...', icon: '⚽' },
-  { key: 'books', label: 'Books &...', icon: '📚' },
+  { key: 'books', label: 'Books & ...', icon: '📚' },
   { key: 'furniture', label: 'Furniture', icon: '🪑' },
+  { key: 'grocery', label: 'Grocery', icon: '🛒' },
 ];
 
 const TAB_TO_CATEGORY = {
@@ -34,6 +35,7 @@ const TAB_TO_CATEGORY = {
   'sports': 'sports-books-more',
   'books': 'sports-books-more',
   'furniture': 'home-furniture',
+  'grocery': 'grocery',
 };
 
 // Map tabs to subcategory slugs for more precise filtering
@@ -41,6 +43,21 @@ const TAB_TO_SUBCATEGORY = {
   'mobiles': 'mobiles',
   'beauty': 'beauty-personal-care',
   'furniture': 'furniture',
+};
+
+// Subcategory labels per tab for the horizontal chips
+const TAB_SUBCATEGORIES = {
+  'fashion': ['T-Shirts', 'Shirts', 'Jeans', 'Shoes', 'Watches', 'Wallets', 'Sunglasses', 'Jackets'],
+  'mobiles': ['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Realme', 'OPPO', 'Vivo', 'Nothing'],
+  'beauty': ['Skincare', 'Makeup', 'Perfumes', 'Haircare', 'Bath & Body', 'Grooming', 'Deodorants', 'Lipstick'],
+  'electronics': ['Laptops', 'Tablets', 'Cameras', 'Audio', 'Headphones', 'Smart Wearables', 'Speakers', 'Gaming'],
+  'home': ['Furniture', 'Decor', 'Bedding', 'Kitchen & Dining', 'Lamps', 'Curtains', 'Cookware', 'Storage'],
+  'appliances': ['Televisions', 'Washing Machine', 'Air Conditioners', 'Refrigerators', 'Microwaves', 'Air Fryers', 'Mixer Grinders', 'Chimneys'],
+  'toys': ['Building Sets', 'Action Figures', 'Board Games', 'Dolls', 'Baby Care', 'Kids Clothing', 'Diapers', 'Strollers'],
+  'sports': ['Cricket', 'Football', 'Badminton', 'Tennis', 'Fitness', 'Running Shoes', 'Gym Equipment', 'Yoga'],
+  'books': ['Fiction', 'Self-Help', 'Academic', 'Comics', 'Biographies', 'Children Books', 'Novels', 'Business'],
+  'furniture': ['Sofas', 'Beds', 'Wardrobes', 'Study Tables', 'Shoe Racks', 'Dining Tables', 'Bookshelves', 'TV Units'],
+  'grocery': ['Staples', 'Snacks', 'Beverages', 'Dairy', 'Oils & Ghee', 'Tea & Coffee', 'Chocolates', 'Biscuits'],
 };
 
 const BANNERS = [
@@ -73,12 +90,33 @@ export default function HomePage() {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [userAddress, setUserAddress] = useState(null);
+  const [allAddresses, setAllAddresses] = useState([]);
   const accountRef = useRef(null);
   const moreRef = useRef(null);
+  const scrolledRef = useRef(false);
 
-  // Track scroll for sticky nav
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 120);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Track scroll with hysteresis to prevent flickering
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (!scrolledRef.current && y > 140) {
+        scrolledRef.current = true;
+        setScrolled(true);
+      } else if (scrolledRef.current && y < 40) {
+        scrolledRef.current = false;
+        setScrolled(false);
+      }
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -87,6 +125,18 @@ export default function HomePage() {
   useEffect(() => {
     categoriesAPI.getAll().then(r => setCategories(r.data.categories || [])).catch(() => {});
   }, []);
+
+  // Fetch user addresses
+  useEffect(() => {
+    if (isAuthenticated) {
+      addressAPI.getAll().then(r => {
+        const addrs = r.data.addresses || [];
+        setAllAddresses(addrs);
+        const def = addrs.find(a => a.is_default) || addrs[0];
+        if (def) setUserAddress(def);
+      }).catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   // Fetch products when activeTab changes
   useEffect(() => {
@@ -133,79 +183,90 @@ export default function HomePage() {
     if (search.trim()) router.push(`/products?search=${encodeURIComponent(search.trim())}`);
   };
 
-  // Get subcategories for the selected tab from our categories
+  // Get subcategories for the selected tab
   const getTabSubcategories = () => {
-    const catSlug = TAB_TO_CATEGORY[activeTab];
-    if (!catSlug) return [];
-    const cat = categories.find(c => c.slug === catSlug);
-    if (!cat) return [];
-    // Generate pseudo-subcategories from category data
-    const subNames = {
-      'mobiles': ['Smartphones', 'Feature Phones', 'Mobile Accessories', 'Cases & Covers', 'Screen Guards', 'Power Banks', 'Headphones', 'View all'],
-      'electronics': ['Laptops', 'Tablets', 'Cameras', 'Smart Watches', 'Audio', 'Gaming', 'Computer Accessories', 'View all'],
-      'fashion-men': ['T-Shirts', 'Shirts', 'Jeans', 'Shoes', 'Watches', 'Wallets', 'Sunglasses', 'View all'],
-      'fashion-women': ['Kurtas', 'Sarees', 'Tops', 'Dresses', 'Handbags', 'Jewellery', 'Footwear', 'View all'],
-      'home-furniture': ['Decor', 'Furniture', 'Bedsheets', 'Curtains', 'Dining', 'Cookware', 'Cleaning', 'View all'],
-      'appliances': ['ACs', 'Refrigerators', 'Washing Machines', 'Microwaves', 'Chimneys', 'Water Purifiers', 'Fans', 'View all'],
-      'beauty': ['Skincare', 'Haircare', 'Perfumes', 'Makeup', 'Bath & Body', 'Grooming', 'Deodorants', 'View all'],
-      'toys-baby': ['Remote Control', 'Board Games', 'Soft Toys', 'Educational', 'Baby Care', 'Diapers', 'Strollers', 'View all'],
-    };
-    return subNames[catSlug] || [];
+    return TAB_SUBCATEGORIES[activeTab] || [];
   };
 
   const currentBanner = BANNERS[bannerIdx];
 
   return (
     <div style={{ background: '#f1f3f6', minHeight: '100vh' }}>
-      {/* ═══════════════════ HOMEPAGE HEADER ═══════════════════ */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e0e0e0' }}>
-        {/* Top Bar */}
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* Logo Tabs */}
-          <div style={{ display: 'flex', gap: 0 }}>
+      {/* ═══════════════════ STICKY HEADER ═══════════════════ */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 900,
+        background: '#fff', boxShadow: scrolled ? '0 2px 8px rgba(0,0,0,.1)' : 'none',
+        borderBottom: scrolled ? 'none' : '1px solid #e0e0e0',
+      }}>
+        {/* ── Top Bar (hidden when scrolled) ── */}
+        {!scrolled && (
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Logo + Travel + Grocery */}
+            <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+              <Link href="/" style={{
+                background: '#ffe500', padding: '8px 20px', borderRadius: 10,
+                fontSize: 16, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+                color: '#212121',
+              }}>
+                <span style={{ background: '#2874f0', color: '#fff', width: 22, height: 22, borderRadius: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, fontStyle: 'italic' }}>f</span>
+                <span style={{ color: '#212121', fontWeight: 700, letterSpacing: -0.3 }}>Flipkart</span>
+              </Link>
+              {!isMobile && (
+                <>
+                  <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#212121', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                    <span style={{ fontSize: 15 }}>✈️</span> Travel
+                  </button>
+                  <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#212121', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                    <span style={{ fontSize: 15 }}>🛒</span> Grocery
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div style={{ flex: 1 }} />
+
+            {/* Location */}
+            {!isMobile && (
+              <div onClick={() => setShowAddressPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#212121', cursor: 'pointer' }}>
+                <svg width="16" height="16" fill="#212121" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                <span style={{ fontWeight: 600 }}>{userAddress?.pincode || 'Add'}</span>
+                <span style={{ color: '#2874f0', fontWeight: 500 }}>{userAddress ? `${userAddress.city || userAddress.locality || 'Deliver here'} ›` : 'Select delivery location ›'}</span>
+              </div>
+            )}
+
+            {/* SuperCoins */}
+            {!isMobile && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#212121', cursor: 'pointer' }}>
+                <span style={{ fontSize: 16 }}>🪙</span> <span style={{ fontWeight: 600 }}>0</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Search Bar Row ── */}
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: scrolled ? '6px 16px' : '0 16px 8px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+          {/* Logo in scrolled mode */}
+          {scrolled && (
             <Link href="/" style={{
-              background: '#2874f0', color: '#fff', padding: '8px 20px', borderRadius: 8,
-              fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+              background: '#ffe500', padding: '6px 14px', borderRadius: 8,
+              fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5,
+              color: '#212121', flexShrink: 0,
             }}>
-              <span style={{ background: '#ffe500', color: '#2874f0', width: 18, height: 18, borderRadius: 3, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900 }}>f</span>
-              Flipkart
+              <span style={{ background: '#2874f0', color: '#fff', width: 20, height: 20, borderRadius: 3, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, fontStyle: 'italic' }}>f</span>
+              <span style={{ color: '#212121', fontWeight: 700 }}>Flipkart</span>
             </Link>
-            <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#212121', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: '#ff4081' }}>✈</span> Travel
-            </button>
-            <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#212121', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: '#43a047' }}>🛒</span> Grocery
-            </button>
-          </div>
+          )}
 
-          {/* Spacer */}
-          <div style={{ flex: 1 }} />
-
-          {/* Location */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#212121', cursor: 'pointer' }}>
-            <span style={{ color: '#2874f0' }}>📍</span>
-            <span style={{ fontWeight: 600 }}>503001</span>
-            <span style={{ color: '#2874f0', fontWeight: 500 }}>Select delivery location &gt;</span>
-          </div>
-
-          {/* SuperCoins */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#212121', cursor: 'pointer' }}>
-            <span style={{ fontSize: 16 }}>🪙</span> <span style={{ fontWeight: 600 }}>0</span>
-          </div>
-        </div>
-
-        {/* Search Bar Row */}
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px 10px', display: 'flex', alignItems: 'center', gap: 16 }}>
           {/* Search */}
-          <form onSubmit={handleSearch} style={{ flex: 1, display: 'flex' }}>
-            <div style={{ flex: 1, display: 'flex', border: '1px solid #e0e0e0', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
-              <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', color: '#878787' }}>
+          <form onSubmit={handleSearch} style={{ flex: 1, display: 'flex', minWidth: isMobile ? '100%' : 'auto', order: isMobile ? 10 : 0 }}>
+            <div style={{ flex: 1, display: 'flex', border: '2px solid #2874f0', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+              <div style={{ padding: isMobile ? '8px 10px' : '10px 14px', display: 'flex', alignItems: 'center', color: '#878787' }}>
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
               </div>
               <input
                 type="text" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search for Products, Brands and More"
-                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#212121', background: 'transparent' }}
+                placeholder={isMobile ? 'Search products...' : 'Search for Products, Brands and More'}
+                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#212121', background: 'transparent', minWidth: 0 }}
               />
             </div>
           </form>
@@ -219,65 +280,84 @@ export default function HomePage() {
               <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             {showAccountMenu && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,.15)', borderRadius: 4, minWidth: 220, zIndex: 999, border: '1px solid #e0e0e0' }}>
-                {isAuthenticated ? (
-                  <>
-                    {[
-                      { label: 'My Profile', href: '/account' },
-                      { label: 'Orders', href: '/orders' },
-                      { label: 'Wishlist', href: '/wishlist' },
-                      { label: 'Coupons', href: '/account/coupons' },
-                      { label: 'Gift Cards', href: '/account/gift-cards' },
-                      { label: 'Saved Addresses', href: '/account/addresses' },
-                      { label: 'Notifications', href: '#' },
-                    ].map(item => (
-                      <Link key={item.label} href={item.href} onClick={() => setShowAccountMenu(false)}
-                        style={{ display: 'block', padding: '10px 16px', fontSize: 13, color: '#212121', textDecoration: 'none', borderBottom: '1px solid #f5f5f5' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+              <div style={{ 
+                position: isMobile ? 'fixed' : 'absolute', 
+                top: isMobile ? 0 : '100%', 
+                right: isMobile ? 0 : 0, 
+                left: isMobile ? 0 : 'auto',
+                bottom: isMobile ? 0 : 'auto',
+                background: isMobile ? 'rgba(0,0,0,.5)' : 'transparent', 
+                zIndex: 9999 
+              }}>
+                <div style={{ background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,.15)', borderRadius: isMobile ? 0 : 4, minWidth: isMobile ? '100%' : 220, maxHeight: isMobile ? '100vh' : 'auto', overflowY: 'auto', border: isMobile ? 'none' : '1px solid #e0e0e0' }}>
+                  {/* Mobile header */}
+                  {isMobile && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f0f0f0', background: '#2874f0' }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>My Account</span>
+                      <button onClick={() => setShowAccountMenu(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', lineHeight: 1 }}>×</button>
+                    </div>
+                  )}
+                  {isAuthenticated ? (
+                    <>
+                      {[
+                        { label: 'My Profile', href: '/account' },
+                        { label: 'Orders', href: '/orders' },
+                        { label: 'Wishlist', href: '/wishlist' },
+                        { label: 'Coupons', href: '/account/coupons' },
+                        { label: 'Gift Cards', href: '/account/gift-cards' },
+                        { label: 'Saved Addresses', href: '/account/addresses' },
+                        { label: 'Notifications', href: '#' },
+                      ].map(item => (
+                        <Link key={item.label} href={item.href} onClick={() => setShowAccountMenu(false)}
+                          style={{ display: 'block', padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#212121', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                          {item.label}
+                        </Link>
+                      ))}
+                      <button onClick={() => { logout(); setShowAccountMenu(false); }}
+                        style={{ display: 'block', width: '100%', padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#ff6161', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#fff0f0'}
                         onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                        {item.label}
+                        Logout
+                      </button>
+                    </>
+                  ) : (
+                    <div style={{ padding: '16px' }}>
+                      <p style={{ fontSize: 13, color: '#878787', marginBottom: 10 }}>New customer?</p>
+                      <Link href="/login" onClick={() => setShowAccountMenu(false)}
+                        style={{ display: 'block', background: '#2874f0', color: '#fff', textAlign: 'center', padding: '10px', borderRadius: 4, textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+                        Login / Sign Up
                       </Link>
-                    ))}
-                    <button onClick={() => { logout(); setShowAccountMenu(false); }}
-                      style={{ display: 'block', width: '100%', padding: '10px 16px', fontSize: 13, color: '#212121', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <div style={{ padding: '16px' }}>
-                    <p style={{ fontSize: 13, color: '#878787', marginBottom: 10 }}>New customer?</p>
-                    <Link href="/login" onClick={() => setShowAccountMenu(false)}
-                      style={{ display: 'block', background: '#2874f0', color: '#fff', textAlign: 'center', padding: '10px', borderRadius: 4, textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
-                      Login / Sign Up
-                    </Link>
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
           {/* More */}
-          <div ref={moreRef} style={{ position: 'relative' }}>
-            <button onClick={() => { setShowMoreMenu(!showMoreMenu); setShowAccountMenu(false); }}
-              style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '8px 0', fontSize: 14, color: '#212121' }}>
-              <span style={{ fontWeight: 500 }}>More</span>
-              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
-            {showMoreMenu && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,.15)', borderRadius: 4, minWidth: 220, zIndex: 999, border: '1px solid #e0e0e0' }}>
-                {['Become a Seller', 'Notification Settings', '24x7 Customer Care', 'Advertise on Flipkart'].map(label => (
-                  <div key={label}
-                    style={{ padding: '10px 16px', fontSize: 13, color: '#212121', cursor: 'pointer', borderBottom: '1px solid #f5f5f5' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                    {label}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {!isMobile && (
+            <div ref={moreRef} style={{ position: 'relative' }}>
+              <button onClick={() => { setShowMoreMenu(!showMoreMenu); setShowAccountMenu(false); }}
+                style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '8px 0', fontSize: 14, color: '#212121' }}>
+                <span style={{ fontWeight: 500 }}>More</span>
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {showMoreMenu && (
+                <div style={{ position: 'absolute', top: '100%', right: 0, background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,.15)', borderRadius: 4, minWidth: 220, zIndex: 999, border: '1px solid #e0e0e0' }}>
+                  {['Become a Seller', 'Notification Settings', '24x7 Customer Care', 'Advertise on Flipkart'].map(label => (
+                    <div key={label}
+                      style={{ padding: '10px 16px', fontSize: 13, color: '#212121', cursor: 'pointer', borderBottom: '1px solid #f5f5f5' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Cart */}
           <Link href="/cart" style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontSize: 14, color: '#212121', position: 'relative' }}>
@@ -293,23 +373,20 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* ── Category Icon Tabs (sticky on scroll) ── */}
-        <div style={{
-          borderTop: '1px solid #f0f0f0', overflow: 'hidden',
-          ...(scrolled ? { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 900, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.1)', borderTop: 'none' } : {})
-        }}>
+        {/* ── Category Icon Tabs ── */}
+        <div style={{ borderTop: '1px solid #f0f0f0', overflow: 'hidden' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', overflowX: 'auto', scrollbarWidth: 'none', padding: '0 8px' }}>
             {HOMEPAGE_TABS.map(tab => (
               <button key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  display: 'flex', flexDirection: scrolled ? 'row' : 'column', alignItems: 'center', gap: scrolled ? 6 : 4,
-                  padding: scrolled ? '10px 14px' : '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
+                  display: 'flex', flexDirection: scrolled ? 'row' : 'column', alignItems: 'center', gap: scrolled ? 6 : 2,
+                  padding: scrolled ? '8px 14px' : '6px 16px', border: 'none', background: 'none', cursor: 'pointer',
                   flexShrink: 0, minWidth: scrolled ? 'auto' : 80,
                   borderBottom: activeTab === tab.key ? '3px solid #2874f0' : '3px solid transparent',
                   transition: 'all .15s',
                 }}>
-                {!scrolled && <span style={{ fontSize: 22 }}>{tab.icon}</span>}
+                {!scrolled && <span style={{ fontSize: 32, lineHeight: 1.1 }}>{tab.icon}</span>}
                 <span style={{
                   fontSize: scrolled ? 13 : 12, fontWeight: activeTab === tab.key ? 700 : 500,
                   color: activeTab === tab.key ? '#2874f0' : '#212121',
@@ -319,8 +396,6 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-        {/* Spacer when sticky */}
-        {scrolled && <div style={{ height: 46 }} />}
       </header>
 
       {/* ═══════════════════ MAIN CONTENT ═══════════════════ */}
@@ -364,22 +439,23 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Subcategory Grid (for category tabs) ── */}
+        {/* ── Subcategory Chips (for category tabs) ── */}
         {activeTab !== 'for-you' && getTabSubcategories().length > 0 && (
-          <div style={{ background: '#fff', borderRadius: 8, padding: '20px', marginBottom: 8, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: '12px 20px', marginBottom: 8, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none', padding: '4px 0' }}>
               {getTabSubcategories().map((sub, i) => {
                 const catSlug = TAB_TO_CATEGORY[activeTab];
                 return (
                   <Link key={i} href={`/products?category=${catSlug}`}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', padding: 8 }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                    <div style={{ width: 72, height: 72, borderRadius: 12, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      <img src={`https://placehold.co/72x72/f1f3f6/2874f0?text=${sub.charAt(0)}`} alt={sub}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                    <span style={{ fontSize: 12, color: '#212121', textAlign: 'center', fontWeight: 500 }}>{sub}</span>
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px',
+                      border: '1px solid #e0e0e0', borderRadius: 20, textDecoration: 'none',
+                      fontSize: 13, color: '#212121', fontWeight: 500, whiteSpace: 'nowrap',
+                      background: '#fff', flexShrink: 0, transition: 'all .15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#2874f0'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#2874f0'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#212121'; e.currentTarget.style.borderColor = '#e0e0e0'; }}>
+                    {sub}
                   </Link>
                 );
               })}
@@ -409,7 +485,7 @@ export default function HomePage() {
               <p style={{ fontSize: 16 }}>No products found in this category</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? 8 : 16 }}>
               {products.map(product => (
                 <Link key={product.id} href={`/product/${product.id}`}
                   style={{ textDecoration: 'none', background: '#fff', borderRadius: 8, border: '1px solid #f0f0f0', transition: 'box-shadow .2s, transform .15s', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
@@ -497,6 +573,87 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* ═══════════════════ ADDRESS PICKER MODAL ═══════════════════ */}
+      {showAddressPicker && (
+        <>
+          {/* Backdrop */}
+          <div onClick={() => setShowAddressPicker(false)}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000 }} />
+          {/* Side Panel */}
+          <div style={{
+            position: 'fixed', top: 0, right: 0, width: isMobile ? '100%' : 420, maxWidth: isMobile ? '100%' : '90vw', height: '100vh',
+            background: '#fff', zIndex: 1001, boxShadow: '-4px 0 24px rgba(0,0,0,.15)',
+            display: 'flex', flexDirection: 'column', animation: 'slideInRight .25s ease-out',
+          }}>
+            {/* Header */}
+            <div style={{ padding: isMobile ? '16px' : '20px 24px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: '#212121' }}>Select delivery address</h2>
+              <button onClick={() => setShowAddressPicker(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: '#878787', padding: 4 }}>&times;</button>
+            </div>
+            {/* Search */}
+            <div style={{ padding: isMobile ? '12px 16px' : '16px 24px' }}>
+              <div style={{ display: 'flex', border: '1px solid #e0e0e0', borderRadius: 8, overflow: 'hidden', background: '#f5f5f5' }}>
+                <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', color: '#878787' }}>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
+                <input placeholder="Search by area, street name, pin code" style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent', padding: '10px 0', minWidth: 0 }} />
+              </div>
+            </div>
+            {/* Use current location */}
+            <div style={{ padding: isMobile ? '4px 16px 12px' : '4px 24px 12px', borderBottom: '1px solid #e0e0e0' }}>
+              <button style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', color: '#2874f0', fontWeight: 600, fontSize: 14, padding: '8px 0' }}>
+                <svg width="18" height="18" fill="#2874f0" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+                Use my current location
+              </button>
+            </div>
+            {/* Saved addresses */}
+            <div style={{ padding: isMobile ? '12px 16px' : '16px 24px', flex: 1, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#878787', textTransform: 'uppercase' }}>Saved addresses</span>
+                <button onClick={() => { setShowAddressPicker(false); window.location.href = '/account/addresses'; }} style={{ background: 'none', border: 'none', color: '#2874f0', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>+ Add New</button>
+              </div>
+              {/* Dynamic address items from user's saved addresses */}
+              {allAddresses.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', color: '#878787' }}>
+                  <p style={{ fontSize: 14, marginBottom: 8 }}>No saved addresses</p>
+                  <button onClick={() => { setShowAddressPicker(false); window.location.href = '/account/addresses'; }}
+                    style={{ background: '#2874f0', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 4, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Add Address
+                  </button>
+                </div>
+              ) : (
+                allAddresses.map((addr, i) => {
+                  const isSelected = userAddress?.id === addr.id;
+                  return (
+                    <div key={addr.id || i} onClick={() => { setUserAddress(addr); setShowAddressPicker(false); }}
+                      style={{
+                        padding: isMobile ? '12px' : '14px 16px', borderRadius: 8, marginBottom: 8, cursor: 'pointer',
+                        border: isSelected ? '2px solid #2874f0' : '1px solid #e0e0e0',
+                        background: isSelected ? '#f0f4ff' : '#fff',
+                      }}
+                      onMouseEnter={e => !isSelected && (e.currentTarget.style.background = '#f5f5f5')}
+                      onMouseLeave={e => !isSelected && (e.currentTarget.style.background = '#fff')}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <svg width="16" height="16" fill={isSelected ? '#2874f0' : '#878787'} viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#212121' }}>{addr.name}</span>
+                        <span style={{ fontSize: 11, color: '#878787', background: '#f0f0f0', padding: '2px 6px', borderRadius: 2, textTransform: 'uppercase', fontWeight: 600 }}>{addr.address_type || 'HOME'}</span>
+                        {isSelected && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#2874f0', color: '#fff', fontWeight: 600 }}>Selected</span>}
+                      </div>
+                      <p style={{ fontSize: 13, color: '#666', lineHeight: 1.4, marginLeft: 24 }}>
+                        {addr.address}{addr.locality ? `, ${addr.locality}` : ''}, {addr.city}, {addr.state} - {addr.pincode}
+                      </p>
+                      <p style={{ fontSize: 12, color: '#878787', marginLeft: 24, marginTop: 2 }}>{addr.phone}</p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+        </>
+      )}
     </div>
   );
 }

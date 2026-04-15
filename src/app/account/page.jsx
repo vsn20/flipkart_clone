@@ -12,6 +12,14 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', gender: '' });
   const [emailForm, setEmailForm] = useState('');
   const [phoneForm, setPhoneForm] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -52,12 +60,15 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  const sectionPad = isMobile ? '16px 14px' : '24px 32px';
+  const inputMaxW = isMobile ? '100%' : 250;
+
   return (
-    <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)' }}>
+    <div style={{ background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,.08)', width: '100%' }}>
       {/* Personal Information */}
-      <div style={{ padding: '24px 32px', borderBottom: '1px solid #f0f0f0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#212121' }}>Personal Information</h2>
+      <div style={{ padding: sectionPad, borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: isMobile ? 16 : 24, flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: '#212121', margin: 0 }}>Personal Information</h2>
           {!editing ? (
             <button onClick={() => setEditing(true)}
               style={{ fontSize: 13, color: '#2874f0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -78,8 +89,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Name Fields */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-          <div style={{ flex: 1, maxWidth: 250 }}>
+        <div style={{ display: 'flex', gap: isMobile ? 10 : 16, marginBottom: isMobile ? 16 : 24, flexDirection: isMobile ? 'column' : 'row' }}>
+          <div style={{ flex: 1, maxWidth: inputMaxW }}>
             <input
               type="text"
               value={form.firstName}
@@ -93,7 +104,7 @@ export default function ProfilePage() {
               }}
             />
           </div>
-          <div style={{ flex: 1, maxWidth: 250 }}>
+          <div style={{ flex: 1, maxWidth: inputMaxW }}>
             <input
               type="text"
               value={form.lastName}
@@ -132,9 +143,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Email Address */}
-      <div style={{ padding: '24px 32px', borderBottom: '1px solid #f0f0f0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#212121' }}>Email Address</h3>
+      <div style={{ padding: sectionPad, borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <h3 style={{ fontSize: isMobile ? 15 : 16, fontWeight: 600, color: '#212121', margin: 0 }}>Email Address</h3>
           {!editingEmail ? (
             <button onClick={() => setEditingEmail(true)}
               style={{ fontSize: 13, color: '#2874f0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -159,7 +170,7 @@ export default function ProfilePage() {
           onChange={e => setEmailForm(e.target.value)}
           disabled={!editingEmail}
           style={{
-            width: '100%', maxWidth: 250, padding: '12px 14px', border: '1px solid #c2c2c2', borderRadius: 2,
+            width: '100%', maxWidth: inputMaxW, padding: '12px 14px', border: '1px solid #c2c2c2', borderRadius: 2,
             fontSize: 14, color: '#212121', outline: 'none', background: editingEmail ? '#fff' : '#f5f5f5',
             boxSizing: 'border-box',
           }}
@@ -167,9 +178,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Mobile Number */}
-      <div style={{ padding: '24px 32px', borderBottom: '1px solid #f0f0f0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#212121' }}>Mobile Number</h3>
+      <div style={{ padding: sectionPad, borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <h3 style={{ fontSize: isMobile ? 15 : 16, fontWeight: 600, color: '#212121', margin: 0 }}>Mobile Number</h3>
           {!editingPhone ? (
             <button onClick={() => setEditingPhone(true)}
               style={{ fontSize: 13, color: '#2874f0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -195,7 +206,7 @@ export default function ProfilePage() {
           disabled={!editingPhone}
           placeholder="Add phone number"
           style={{
-            width: '100%', maxWidth: 250, padding: '12px 14px', border: '1px solid #c2c2c2', borderRadius: 2,
+            width: '100%', maxWidth: inputMaxW, padding: '12px 14px', border: '1px solid #c2c2c2', borderRadius: 2,
             fontSize: 14, color: '#212121', outline: 'none', background: editingPhone ? '#fff' : '#f5f5f5',
             boxSizing: 'border-box',
           }}
@@ -203,8 +214,8 @@ export default function ProfilePage() {
       </div>
 
       {/* FAQs */}
-      <div style={{ padding: '24px 32px' }}>
-        <h3 style={{ fontSize: 18, fontWeight: 600, color: '#212121', marginBottom: 16 }}>FAQs</h3>
+      <div style={{ padding: sectionPad }}>
+        <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: '#212121', marginBottom: 16 }}>FAQs</h3>
         {[
           {
             q: 'What happens when I update my email address (or mobile number)?',
@@ -224,8 +235,8 @@ export default function ProfilePage() {
           },
         ].map((faq, i) => (
           <div key={i} style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#212121', marginBottom: 4 }}>{faq.q}</p>
-            <p style={{ fontSize: 13, color: '#878787', lineHeight: 1.6 }}>{faq.a}</p>
+            <p style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: '#212121', marginBottom: 4 }}>{faq.q}</p>
+            <p style={{ fontSize: isMobile ? 12 : 13, color: '#878787', lineHeight: 1.6 }}>{faq.a}</p>
           </div>
         ))}
 
