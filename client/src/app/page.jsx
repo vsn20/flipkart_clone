@@ -118,12 +118,12 @@ export default function HomePage() {
     const onScroll = () => {
       const y = window.scrollY;
       // Desktop: 140px down, 40px up (100px gap - stable)
-      // Mobile: 100px down, 80px up (20px gap - for sticky navbar)
+      // Mobile: 150px down, 70px up (80px gap - prevents flickering)
       if (isMobile) {
-        if (!scrolledRef.current && y > 100) {
+        if (!scrolledRef.current && y > 150) {
           scrolledRef.current = true;
           setScrolled(true);
-        } else if (scrolledRef.current && y < 80) {
+        } else if (scrolledRef.current && y < 70) {
           scrolledRef.current = false;
           setScrolled(false);
         }
@@ -458,7 +458,7 @@ export default function HomePage() {
                   borderBottom: activeTab === tab.key ? '3px solid #2874f0' : '3px solid transparent',
                   transition: 'all .15s',
                 }}>
-                {!scrolled && <span style={{ fontSize: 32, lineHeight: 1.1 }}>{tab.icon}</span>}
+                <span style={{ fontSize: 32, lineHeight: 1.1 }}>{tab.icon}</span>
                 <span style={{
                   fontSize: scrolled ? 13 : 12, fontWeight: activeTab === tab.key ? 700 : 500,
                   color: activeTab === tab.key ? '#2874f0' : '#212121',
