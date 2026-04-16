@@ -113,33 +113,26 @@ export default function HomePage() {
     setBannerIdx(0);
   }, [isMobile]);
 
-  // Track scroll with hysteresis to prevent flickering
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      // Desktop: 140px down, 40px up (100px gap - stable)
-      // Mobile: 100px down, 80px up (20px gap - for sticky navbar)
-      if (isMobile) {
-        if (!scrolledRef.current && y > 100) {
-          scrolledRef.current = true;
-          setScrolled(true);
-        } else if (scrolledRef.current && y < 80) {
-          scrolledRef.current = false;
-          setScrolled(false);
-        }
-      } else {
-        if (!scrolledRef.current && y > 140) {
-          scrolledRef.current = true;
-          setScrolled(true);
-        } else if (scrolledRef.current && y < 40) {
-          scrolledRef.current = false;
-          setScrolled(false);
-        }
-      }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [isMobile]);
+  // Track scroll with debouncing to prevent flickering
+  // Track scroll - hysteresis thresholds prevent flickering
+useEffect(() => {
+  const threshold = isMobile ? 100 : 140;
+  const backThreshold = isMobile ? 80 : 110; // must be well below threshold
+
+  const onScroll = () => {
+    const y = window.scrollY;
+    if (!scrolledRef.current && y > threshold) {
+      scrolledRef.current = true;
+      setScrolled(true);
+    } else if (scrolledRef.current && y < backThreshold) {
+      scrolledRef.current = false;
+      setScrolled(false);
+    }
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  return () => window.removeEventListener('scroll', onScroll);
+}, [isMobile]);
   // Fetch categories once
   useEffect(() => {
     categoriesAPI.getAll().then(r => setCategories(r.data.categories || [])).catch(() => {});

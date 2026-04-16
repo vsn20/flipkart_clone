@@ -272,9 +272,9 @@ export default function ProductDetailPage() {
             </div>
 
             <div style={{display:'flex', justifyContent:'space-around', borderTop:'1px solid #f0f0', borderBottom:'1px solid #f0f0f0', padding:'16px 0', marginBottom:20}}>
-              {[{img:'https://rukminim2.flixcart.com/www/80/80/promos/18/07/2018/3d8e9b84-cbb9-499e-8c5e-43ea45d99a47.png',t:'10-Day',s:'Return'},{img:'https://rukminim2.flixcart.com/www/80/80/promos/18/07/2018/5ff7d96b-06b4-40ab-a8b9-5c9c1d5e4f1c.png',t:'Cash on',s:'Delivery'},{img:'https://rukminim2.flixcart.com/www/80/80/promos/18/07/2018/9b5f7f8f-7a2a-4c8d-9c2a-1f5e4f1c5c9c.png',t:'Customer',s:'support'}].map((x,i)=>(
+              {[{emoji:'🔄',t:'10-Day',s:'Return'},{emoji:'💵',t:'Cash on',s:'Delivery'},{emoji:'💬',t:'Customer',s:'support'}].map((x,i)=>(
                 <div key={i} style={{textAlign:'center'}}>
-                  <img src={x.img} alt="" style={{width:32, height:32, marginBottom:6}}/>
+                  <div style={{fontSize:32, marginBottom:6}}>{x.emoji}</div>
                   <div style={{fontSize:12, color:'#212121', lineHeight:1.2}}>{x.t}<br/>{x.s}</div>
                 </div>
               ))}
