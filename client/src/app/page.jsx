@@ -98,12 +98,20 @@ export default function HomePage() {
   const moreRef = useRef(null);
   const scrolledRef = useRef(false);
 
+  // Flatten all panels from all banners for continuous scrolling
+  const allPanels = BANNERS.flatMap(b => b.panels);
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  // Reset banner index when switching between mobile and desktop
+  useEffect(() => {
+    setBannerIdx(0);
+  }, [isMobile]);
 
   // Track scroll with hysteresis to prevent flickering
   useEffect(() => {
@@ -164,9 +172,10 @@ export default function HomePage() {
 
   // Banner auto-rotate
   useEffect(() => {
-    const t = setInterval(() => setBannerIdx(p => (p + 1) % BANNERS.length), 5000);
+    const slidesCount = isMobile ? allPanels.length : 2;
+    const t = setInterval(() => setBannerIdx(p => (p + 1) % slidesCount), 5000);
     return () => clearInterval(t);
-  }, []);
+  }, [isMobile, allPanels.length]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -187,8 +196,21 @@ export default function HomePage() {
   const getTabSubcategories = () => {
     return TAB_SUBCATEGORIES[activeTab] || [];
   };
+  
+  // Get visible panels based on device type and current slide
+  const getVisiblePanels = () => {
+    if (isMobile) {
+      // Mobile: show 1 card at a time
+      return [allPanels[bannerIdx]];
+    } else {
+      // Desktop: show 3 cards at a time, bannerIdx is 0 or 1 (for 2 groups)
+      const startIdx = bannerIdx * 3;
+      return allPanels.slice(startIdx, startIdx + 3);
+    }
+  };
 
-  const currentBanner = BANNERS[bannerIdx];
+  const visiblePanels = getVisiblePanels();
+  const maxSlides = isMobile ? allPanels.length : 2;
 
   return (
     <div style={{ background: '#f1f3f6', minHeight: '100vh' }}>
@@ -405,7 +427,7 @@ export default function HomePage() {
         {activeTab === 'for-you' && (
           <div style={{ position: 'relative', margin: '0 0 8px' }}>
             <div style={{ display: 'flex', gap: 8, overflow: 'hidden', borderRadius: 8 }}>
-              {currentBanner.panels.map((panel, i) => (
+              {visiblePanels.map((panel, i) => (
                 <div key={i} style={{
                   flex: i === 0 ? 2 : 1.5,
                   background: panel.bg,
@@ -431,7 +453,7 @@ export default function HomePage() {
             </div>
             {/* Dots */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
-              {BANNERS.map((_, i) => (
+              {Array.from({ length: maxSlides }).map((_, i) => (
                 <button key={i} onClick={() => setBannerIdx(i)}
                   style={{ width: i === bannerIdx ? 20 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', background: i === bannerIdx ? '#2874f0' : '#c2c2c2', transition: 'all .3s', padding: 0 }} />
               ))}
