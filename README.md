@@ -15,17 +15,13 @@ A production-ready, feature-rich e-commerce web application that closely replica
 - [Environment Variables](#-environment-variables)
 - [Database Seeding](#-database-seeding)
 - [API Endpoints](#-api-endpoints)
-- [Recent Changes & Improvements](#-recent-changes--improvements)
 - [Assumptions & Design Decisions](#-assumptions--design-decisions)
 
 ---
 
 ## 🌐 Live Demo
 
-**Production Deployment:**  
 🔗 **Frontend:** https://flipkart-clone-one-omega.vercel.app/
-
-> **Note:** Backend is deployed separately. Make sure both frontend and backend are running for full functionality.
 
 ---
 
@@ -38,7 +34,6 @@ A production-ready, feature-rich e-commerce web application that closely replica
 | **React** | 19.2.4 | UI library |
 | **Tailwind CSS** | 4.x | Utility-first CSS framework |
 | **Axios** | 1.15.0 | HTTP client for API calls |
-| **NextAuth.js** | 4.24.13 | Google OAuth authentication |
 | **React Hot Toast** | 2.6.0 | Toast notifications |
 | **React Icons** | 5.6.0 | Icon library |
 | **Swiper** | 12.1.3 | Image carousel |
@@ -60,7 +55,8 @@ A production-ready, feature-rich e-commerce web application that closely replica
 ### Database
 | Technology | Purpose |
 |---|---|
-| **MySQL** | Relational database (via MySQL Workbench locally) |
+| **MySQL** | Relational database (via MySQL Workbench locally or Railway) |
+| **Railway** | Cloud database hosting (Free tier: 30 days till May 15, 2026) |
 
 ---
 
@@ -83,7 +79,6 @@ flipkart_clone/
 │   │   │   ├── order-confirmation/  # Order success page
 │   │   │   ├── wishlist/page.jsx    # Wishlist
 │   │   │   ├── compare/page.jsx     # Product comparison
-│   │   │   ├── flipkart-plus/       # Flipkart Plus membership
 │   │   │   └── account/             # Account management
 │   │   │       ├── page.jsx         # Profile overview
 │   │   │       ├── addresses/       # Saved addresses (CRUD)
@@ -118,7 +113,7 @@ flipkart_clone/
 │   │   ├── config/
 │   │   │   └── database.js          # Sequelize DB connection
 │   │   ├── controllers/
-│   │   │   ├── authController.js    # Login, register, Google OAuth
+│   │   │   ├── authController.js    # Login, register
 │   │   │   ├── productController.js # Product CRUD & search
 │   │   │   ├── cartController.js    # Cart management
 │   │   │   ├── orderController.js   # Order placement & history
@@ -243,32 +238,20 @@ flipkart_clone/
 - **Order Details** — Order number, date, items, pricing, shipping info
 - **Order Status Tracking** — Pending → Confirmed → Shipped → Delivered
 - **Order Confirmation Page** — Post-purchase confirmation with order summary
-- **Super Coins Earned** — Display of loyalty points earned per order
 
 ### 👤 User Account
-- **Profile Management** — View and edit personal information
+- **Profile Management** — View and edit personal information (name, email, phone, gender)
 - **Address Book** — Full CRUD for shipping addresses (add, edit, delete, set default)
 - **Account Sidebar** — Consistent navigation across all account pages
-- **Saved Cards** — Payment card management page
-- **Saved UPI** — UPI ID management page
-- **Coupons** — Available coupons page
-- **Gift Cards** — Gift card management page
-- **PAN Card** — PAN information page
-- **Notifications** — Notification preferences page
-- **Reviews** — User review history page
+- **My Orders** — View order history and details
+- **My Wishlist** — Manage wishlisted products
 
 ### 🔐 Authentication
 - **Email/Password Login** — Traditional login with JWT tokens
 - **User Registration** — Sign up with name, email, password
-- **Google OAuth** — One-click Google sign-in via NextAuth.js
 - **Guest Checkout** — Browse and add to cart without logging in
 - **JWT Token Management** — Secure token storage with auto-refresh
 - **Protected Routes** — Server-side route protection with auth middleware
-
-### ⭐ Flipkart Plus
-- **Membership Page** — Flipkart Plus benefits overview
-- **Super Coins** — Loyalty points display and tracking
-- **Plus Tier Status** — Member tier visualization
 
 ### 🎨 UI/UX Design
 - **Pixel-Perfect Flipkart UI** — Matches Flipkart's actual design language
@@ -461,7 +444,6 @@ The seed script (`npm run seed`) populates the database with:
 |---|---|---|
 | POST | `/api/auth/register` | Register new user |
 | POST | `/api/auth/login` | Login with email/password |
-| POST | `/api/auth/google` | Google OAuth login |
 | GET | `/api/auth/me` | Get current user profile |
 
 ### Products
@@ -514,36 +496,6 @@ The seed script (`npm run seed`) populates the database with:
 
 ---
 
-## 🎯 Recent Changes & Improvements
-
-### Mobile UI/UX Enhancements (Latest Build)
-
-**Navbar Scroll Behavior:**
-- ✅ Fixed scroll detection flickering on mobile by increasing hysteresis thresholds
-  - Mobile: **150px down**, **70px up** (80px gap for stability)
-  - Desktop: **140px down**, **40px up** (100px gap for smooth behavior)
-- ✅ Navbar remains **sticky on mobile** during scroll with all elements visible
-- ✅ All emojis and navigation items stay visible when scrolling down on mobile
-
-**Navbar Visual Design:**
-- ✅ Smooth gradient fade header (dark blue #1a237e → light blue → white)
-- ✅ White backgrounds on navbar sections to prevent product content overlap
-- ✅ Prevented flickering when scrolling minimal distances (better UX on smaller screens)
-- ✅ Category emojis remain **large (32px)** consistently during scroll (not shrinking)
-- ✅ Removed duplicate Flipkart logos - only shows once in search bar on desktop when scrolled
-- ✅ Address selector with coin emoji (🪙) always accessible on mobile
-
-**Product Detail Page:**
-- ✅ Fixed missing emoji badges on trust indicators (🔄, 💵, 💬)
-- ✅ Replaced broken image placeholders with actual emojis for Return, Cash on Delivery, and Support
-
-**Code Quality:**
-- All changes maintain existing functionality
-- No breaking changes to backend or API contracts
-- Mobile-first approach in scroll detection logic
-
----
-
 ## 📌 Assumptions & Design Decisions
 
 ### Architecture
@@ -553,7 +505,6 @@ The seed script (`npm run seed`) populates the database with:
 - **Sequelize ORM** — Used over raw SQL for type-safe queries and automatic migration support.
 
 ### Authentication
-- **Google OAuth** — Implemented via NextAuth.js. Simulates real Google sign-in flow. In production, requires Google Cloud Console credentials.
 - **Guest Users** — Anonymous users can browse and add to cart. Authentication is prompted only at checkout.
 - **Password Hashing** — All passwords are hashed with bcryptjs (10 salt rounds) before storage.
 
