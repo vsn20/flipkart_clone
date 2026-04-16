@@ -291,6 +291,10 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               ))}
+              <button onClick={() => {setShowAddressDrawer(false); router.push('/account/addresses');}} style={{display:'flex', alignItems:'center', gap:10, width:'100%', padding:'16px 20px', background:'#f5faff', border:'none', borderTop:'2px solid #e0e0e0', cursor:'pointer', fontSize:14, fontWeight:600, color:'#2874f0', textTransform:'uppercase'}}>
+                <span style={{fontSize:20}}>+</span>
+                ADD A NEW ADDRESS
+              </button>
             </div>
           </div>
         </div>
