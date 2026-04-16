@@ -21,13 +21,17 @@ export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [expandedOption, setExpandedOption] = useState('cod');
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '' });
   const [cardErrors, setCardErrors] = useState({});
   const [giftForm, setGiftForm] = useState({ number: '', pin: '' });
   const [giftErrors, setGiftErrors] = useState({});
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -160,7 +164,7 @@ export default function PaymentPage() {
       </div>
 
       {/* Main content */}
-      <div style={{maxWidth:1100, margin:'0 auto', padding:'16px'}}>
+      <div style={{maxWidth: isMobile ? '100%' : (isTablet ? '95%' : 1100), margin:'0 auto', padding: isMobile ? '12px' : (isTablet ? '14px' : '16px')}}>
         {/* Back + Title */}
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
           <div style={{display:'flex', alignItems:'center', gap:12}}>
@@ -173,7 +177,7 @@ export default function PaymentPage() {
           </div>
         </div>
 
-        <div style={{display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:16, alignItems:'flex-start'}}>
+        <div style={{display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : (isTablet ? 14 : 16), alignItems:'flex-start'}}>
           {/* Left — Payment Options */}
           <div style={{flex:1, background:'#fff', boxShadow:'0 1px 4px rgba(0,0,0,.08)', overflow:'hidden'}}>
             {paymentOptions.map((opt, i) => (
@@ -310,9 +314,9 @@ export default function PaymentPage() {
           </div>
 
           {/* Right — Price Summary */}
-          <div style={{width: isMobile ? '100%' : 320, flexShrink:0}}>
-            <div style={{background:'#fff', padding:'16px 20px', boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>
-              <div style={{display:'flex', justifyContent:'space-between', padding:'10px 0', fontSize:14}}>
+          <div style={{width: isMobile ? '100%' : (isTablet ? '280px' : 320), flexShrink:0}}>
+            <div style={{background:'#fff', padding: isMobile ? '14px 16px' : (isTablet ? '15px 18px' : '16px 20px'), boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>
+              <div style={{display:'flex', justifyContent:'space-between', padding:'10px 0', fontSize: isMobile ? 13 : 14, flexWrap: 'wrap', gap: 8}}>
                 <span>MRP (incl. of all taxes)</span>
                 <span>{formatPrice(mrp)}</span>
               </div>
@@ -324,7 +328,7 @@ export default function PaymentPage() {
                   <span></span>
                 </div>
                 <div style={{paddingLeft:12, paddingBottom:8}}>
-                  <div style={{display:'flex', justifyContent:'space-between', fontSize:13, color:'#878787', padding:'4px 0'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', fontSize: isMobile ? 12 : 13, color:'#878787', padding:'4px 0', gap: 8}}>
                     <span>Protect Promise Fee</span>
                     <span>₹{fee}</span>
                   </div>
@@ -338,7 +342,7 @@ export default function PaymentPage() {
                   <span></span>
                 </div>
                 <div style={{paddingLeft:12, paddingBottom:8}}>
-                  <div style={{display:'flex', justifyContent:'space-between', fontSize:13, padding:'4px 0'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', fontSize: isMobile ? 12 : 13, padding:'4px 0', gap: 8}}>
                     <span style={{color:'#878787'}}>MRP Discount</span>
                     <span style={{color:'#388e3c'}}>-{formatPrice(discount)}</span>
                   </div>
@@ -346,22 +350,22 @@ export default function PaymentPage() {
               </div>
 
               {/* Total */}
-              <div style={{borderTop:'1px solid #e0e0e0', display:'flex', justifyContent:'space-between', padding:'14px 0 8px', fontSize:16, fontWeight:600, color:'#2874f0'}}>
+              <div style={{borderTop:'1px solid #e0e0e0', display:'flex', justifyContent:'space-between', padding:'14px 0 8px', fontSize: isMobile ? 14 : (isTablet ? 15 : 16), fontWeight:600, color:'#2874f0', gap: 8}}>
                 <span>Total Amount</span>
                 <span>{formatPrice(total)}</span>
               </div>
 
               {/* Cashback offer */}
-              <div style={{background:'#e8f5e9', padding:'10px 14px', borderRadius:4, marginTop:8, display:'flex', alignItems:'center', gap:10}}>
-                <span style={{color:'#388e3c', fontWeight:600, fontSize:13}}>5% Cashback</span>
-                <span style={{fontSize:12, color:'#878787'}}>Claim now with payment offers</span>
+              <div style={{background:'#e8f5e9', padding:'10px 14px', borderRadius:4, marginTop:8, display:'flex', alignItems:'center', gap:10, flexWrap: 'wrap'}}>
+                <span style={{color:'#388e3c', fontWeight:600, fontSize: isMobile ? 12 : 13}}>5% Cashback</span>
+                <span style={{fontSize: isMobile ? 11 : 12, color:'#878787'}}>Claim now with payment offers</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{textAlign:'center', padding:'24px 0', fontSize:12, color:'#878787', marginTop:24, borderTop:'1px solid #e0e0e0'}}>
+        <div style={{textAlign:'center', padding: isMobile ? '16px 0' : (isTablet ? '20px 0' : '24px 0'), fontSize: isMobile ? 11 : 12, color:'#878787', marginTop: isMobile ? 16 : (isTablet ? 20 : 24), borderTop:'1px solid #e0e0e0'}}>
           Policies: Returns Policy | Terms of use | Security | Privacy &nbsp;&nbsp; © 2007-2026 Flipkart.com
         </div>
       </div>

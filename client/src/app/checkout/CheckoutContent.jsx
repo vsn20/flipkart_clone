@@ -21,9 +21,13 @@ export default function CheckoutPage() {
   const [directItem, setDirectItem] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -144,7 +148,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div style={{maxWidth:1100, margin:'0 auto', padding:'12px 16px', display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:16, alignItems:'flex-start'}}>
+      <div style={{maxWidth: isMobile ? '100%' : (isTablet ? '95%' : 1100), margin:'0 auto', padding: isMobile ? '8px 12px' : (isTablet ? '10px 14px' : '12px 16px'), display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : (isTablet ? 14 : 16), alignItems:'flex-start'}}>
         <div style={{flex:1}}>
           <div style={{background:'#fff', padding: isMobile ? '12px 14px' : '16px 20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
@@ -163,7 +167,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div style={{background:'#fff', padding: isMobile ? '12px' : '20px', marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
+          <div style={{background:'#fff', padding: isMobile ? '12px' : (isTablet ? '14px' : '20px'), marginBottom:8, boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
             {items.map((cartItem, idx) => {
               const product = cartItem.product || {};
               const qty = Number(cartItem.quantity) || 1;
@@ -173,9 +177,9 @@ export default function CheckoutPage() {
 
               return (
                 <div key={`${product.id || 'item'}-${idx}`} style={{ borderBottom: idx < items.length - 1 ? '1px solid #f0f0f0' : 'none', paddingBottom: idx < items.length - 1 ? 16 : 0, marginBottom: idx < items.length - 1 ? 16 : 0 }}>
-                  <div style={{display:'flex', gap: isMobile ? 12 : 24}}>
-                    <img src={product.images?.[0]} alt="" style={{width: isMobile ? 60 : 90, height: isMobile ? 75 : 110, objectFit:'contain', flexShrink: 0}}/>
-                    <div style={{flex:1}}>
+                  <div style={{display:'flex', gap: isMobile ? 12 : (isTablet ? 16 : 24), flexWrap: 'wrap'}}>
+                    <img src={product.images?.[0]} alt="" style={{width: isMobile ? 60 : (isTablet ? 70 : 90), height: isMobile ? 75 : (isTablet ? 85 : 110), objectFit:'contain', flexShrink: 0}} />
+                    <div style={{flex:1, minWidth: isMobile ? '100%' : (isTablet ? '180px' : 'auto')}}>
                       <div style={{fontSize:16, fontWeight:500, marginBottom:4}}>{product.name}</div>
                       <div style={{fontSize:14, color:'#878787', marginBottom:8}}>{product.color || 'Standard'}</div>
                       <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
@@ -192,8 +196,8 @@ export default function CheckoutPage() {
                         <span style={{fontSize:22, fontWeight:700}}>{formatPrice(unitPrice)}</span>
                       </div>
                     </div>
-                    <div>
-                      <select value={qty} onChange={e=>handleQtyChange(cartItem, e.target.value)} style={{padding:'6px 24px 6px 12px', border:'1px solid #e0e0e0', borderRadius:2, fontSize:14, background:'#fff', cursor:'pointer'}}>
+                    <div style={{flexShrink: 0}}>
+                      <select value={qty} onChange={e=>handleQtyChange(cartItem, e.target.value)} style={{padding:'6px 24px 6px 12px', border:'1px solid #e0e0e0', borderRadius:2, fontSize: isMobile ? 12 : 14, background:'#fff', cursor:'pointer'}}>
                         {[1,2,3,4,5,6,7,8,9,10].map(n=><option key={n} value={n}>Qty: {n}</option>)}
                       </select>
                     </div>
@@ -224,7 +228,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div style={{width: isMobile ? '100%' : 330, flexShrink:0}}>
+        <div style={{width: isMobile ? '100%' : (isTablet ? '280px' : 330), flexShrink:0}}>
           <div style={{background:'#fff', padding:'16px', boxShadow:'0 1px 2px rgba(0,0,0,.1)'}}>
             {[
               {l:'MRP', v:formatPrice(mrp), d:true},
@@ -252,7 +256,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Continue sticky bar */}
-          <div style={{background:'#fff', marginTop:12, padding: isMobile ? '10px 12px' : '12px 16px', boxShadow:'0 1px 2px rgba(0,0,0,.1)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', bottom:12, gap: 12}}>
+          <div style={{background:'#fff', marginTop:12, padding: isMobile ? '10px 12px' : (isTablet ? '11px 14px' : '12px 16px'), boxShadow:'0 1px 2px rgba(0,0,0,.1)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', bottom:12, gap: isMobile ? 8 : 12, flexWrap: 'wrap'}}>
             <div>
               <div style={{fontSize:12, color:'#878787', textDecoration:'line-through'}}>{formatPrice(mrp)}</div>
               <div style={{fontSize: isMobile ? 18 : 20, fontWeight:600}}>{formatPrice(total)}</div>
@@ -260,7 +264,7 @@ export default function CheckoutPage() {
             </div>
             <button
               onClick={goToPayment}
-              style={{background:'#fb641b', color:'#fff', border:'none', padding: isMobile ? '12px 24px' : '14px 40px', borderRadius:4, fontWeight:600, fontSize: isMobile ? 14 : 16, cursor:'pointer', whiteSpace:'nowrap'}}>
+              style={{background:'#fb641b', color:'#fff', border:'none', padding: isMobile ? '12px 24px' : (isTablet ? '13px 32px' : '14px 40px'), borderRadius:4, fontWeight:600, fontSize: isMobile ? 14 : (isTablet ? 15 : 16), cursor:'pointer', whiteSpace:'nowrap', flex: isMobile ? '1 1 100%' : 'auto'}}>
               CONTINUE
             </button>
           </div>
