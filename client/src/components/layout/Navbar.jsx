@@ -188,9 +188,9 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
                   <div style={{
                     background: '#fff', 
                     boxShadow: '0 4px 20px rgba(0,0,0,.18)', 
-                    minWidth: isMobile ? '100%' : 230, 
-                    maxWidth: isMobile ? '100%' : 230,
-                    borderRadius: isMobile ? 0 : 2,
+                    minWidth: isMobile ? '100%' : 280, 
+                    maxWidth: isMobile ? '100%' : 280,
+                    borderRadius: isMobile ? 0 : 4,
                     maxHeight: isMobile ? '100vh' : 'auto',
                     overflowY: 'auto',
                   }}>
@@ -201,34 +201,93 @@ const searchBorder = isWhiteNav ? '2px solid #2874f0' : 'none';
                         <button onClick={() => setShowUserMenu(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', lineHeight: 1 }}>×</button>
                       </div>
                     )}
-                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: '#212121' }}>{user?.name}</p>
-                      <p style={{ fontSize: 12, color: '#878787', marginTop: 2 }}>{user?.email}</p>
+                    {/* User Info Header */}
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #e0e0e0', background: 'linear-gradient(135deg, #2874f0 0%, #1a3a7d 100%)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#2874f0' }}>
+                          {user?.name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0 }}>{user?.name}</p>
+                          <p style={{ fontSize: 11, color: 'rgba(255,255,255,.8)', margin: '2px 0 0 0' }}>{user?.email}</p>
+                        </div>
+                      </div>
                     </div>
-                    {[
-                      { href: '/account', icon: '👤', label: 'My Profile' },
-                      { href: '/account', icon: '🪙', label: 'SuperCoin Zone' },
-                      { href: '/flipkart-plus', icon: '✨', label: 'Flipkart Plus Zone' },
-                      { href: '/orders', icon: '📦', label: 'Orders' },
-                      { href: '/wishlist', icon: '❤️', label: 'Wishlist', badge: null },
-                      { href: '/', icon: '🏷️', label: 'Coupons' },
-                      { href: '/', icon: '🎁', label: 'Gift Cards' },
-                      { href: '/', icon: '🔔', label: 'Notifications' },
-                    ].map(item => (
-                      <Link key={item.label} href={item.href} onClick={() => setShowUserMenu(false)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#212121', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#f5faff'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                      >
-                        <span style={{ fontSize: isMobile ? 20 : 14 }}>{item.icon}</span>{item.label}
-                      </Link>
-                    ))}
+
+                    {/* Menu Items */}
+                    <div style={{ paddingTop: 4 }}>
+                      {[
+                        { href: '/account', icon: '👤', label: 'My Profile' },
+                        { href: '/account', icon: '🪙', label: 'SuperCoin Zone' },
+                        { href: '/flipkart-plus', icon: '✨', label: 'Flipkart Plus Zone' },
+                        { href: '/orders', icon: '📦', label: 'Orders' },
+                        { href: '/wishlist', icon: '❤️', label: 'Wishlist' },
+                        { href: '/account/saved-cards', icon: '💳', label: 'Saved Cards & Wallet' },
+                        { href: '/account/addresses', icon: '📍', label: 'Saved Addresses' },
+                        { href: '/', icon: '🏷️', label: 'Coupons' },
+                        { href: '/', icon: '🎁', label: 'Gift Cards' },
+                        { href: '/', icon: '🔔', label: 'Notifications' },
+                      ].map((item, idx) => (
+                        <Link key={item.label} href={item.href} onClick={() => setShowUserMenu(false)}
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 10, 
+                            padding: isMobile ? '12px 16px' : '8px 16px', 
+                            fontSize: isMobile ? 15 : 13, 
+                            color: '#212121', 
+                            textDecoration: 'none', 
+                            borderBottom: idx < 9 ? '1px solid #f5f5f5' : 'none',
+                            transition: 'all .2s ease'
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.background = '#f8f8f8';
+                            e.currentTarget.style.borderLeft = '4px solid #2874f0';
+                            e.currentTarget.style.paddingLeft = isMobile ? '16px' : '12px';
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.background = 'none';
+                            e.currentTarget.style.borderLeft = 'none';
+                            e.currentTarget.style.paddingLeft = isMobile ? '16px' : '16px';
+                          }}
+                        >
+                          <span style={{ fontSize: isMobile ? 18 : 16, minWidth: isMobile ? 20 : 18, textAlign: 'center' }}>{item.icon}</span>
+                          <span style={{ fontWeight: 500 }}>{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* Logout Button */}
                     <button onClick={() => { logout(); setShowUserMenu(false); router.push('/'); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#ff6161', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#fff0f0'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 10, 
+                        width: '100%', 
+                        padding: isMobile ? '12px 16px' : '8px 16px', 
+                        fontSize: isMobile ? 15 : 13, 
+                        color: '#ff6161', 
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        textAlign: 'left',
+                        borderTop: '1px solid #f5f5f5',
+                        marginTop: 0,
+                        transition: 'all .2s ease'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = '#fff5f5';
+                        e.currentTarget.style.borderLeft = '4px solid #ff6161';
+                        e.currentTarget.style.paddingLeft = isMobile ? '16px' : '12px';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'none';
+                        e.currentTarget.style.borderLeft = 'none';
+                        e.currentTarget.style.paddingLeft = isMobile ? '16px' : '16px';
+                      }}
                     >
-                      <span style={{ fontSize: isMobile ? 20 : 14 }}>🚪</span>Logout
+                      <span style={{ fontSize: isMobile ? 18 : 16, minWidth: isMobile ? 20 : 18, textAlign: 'center' }}>🚪</span>
+                      <span style={{ fontWeight: 500 }}>Logout</span>
                     </button>
                   </div>
                 </div>

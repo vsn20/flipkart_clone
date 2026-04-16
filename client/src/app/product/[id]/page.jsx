@@ -350,8 +350,14 @@ export default function ProductDetailPage() {
         {similarProducts.length>0 && (
           <div style={{marginTop:16, paddingBottom:40, borderTop: '1px solid #f0f0f0', paddingTop: 24}}>
             <h2 style={{fontSize:20, fontWeight:600, color: '#212121', marginBottom:16}}>Similar Products</h2>
-            <div style={{display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,1fr)', gap: isMobile ? 8 : 16}}>
-              {similarProducts.slice(0,5).map(p=> <ProductCard key={p.id} product={p}/>) }
+            <div style={{position:'relative'}}>
+              <div style={{display:'flex', gap: isMobile ? 8 : 16, overflowX:'auto', scrollBehavior:'smooth', paddingBottom: 8, overflowY: 'hidden', scrollbarWidth: 'thin', scrollbarColor: '#ccc #f5f5f5'}}>
+                {similarProducts.map(p=> (
+                  <div key={p.id} style={{minWidth: isMobile ? 'calc(50% - 4px)' : 240, flex:'0 0 auto'}}>
+                    <ProductCard product={p}/>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

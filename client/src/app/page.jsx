@@ -361,7 +361,7 @@ export default function HomePage() {
                 background: isMobile ? 'rgba(0,0,0,.5)' : 'transparent', 
                 zIndex: 9999 
               }}>
-                <div style={{ background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,.15)', borderRadius: isMobile ? 0 : 4, minWidth: isMobile ? '100%' : 220, maxHeight: isMobile ? '100vh' : 'auto', overflowY: 'auto', border: isMobile ? 'none' : '1px solid #e0e0e0' }}>
+                <div style={{ background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,.18)', borderRadius: isMobile ? 0 : 4, minWidth: isMobile ? '100%' : 280, maxHeight: isMobile ? '100vh' : 'auto', overflowY: 'auto' }}>
                   {/* Mobile header */}
                   {isMobile && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f0f0f0', background: '#2874f0' }}>
@@ -371,27 +371,89 @@ export default function HomePage() {
                   )}
                   {isAuthenticated ? (
                     <>
-                      {[
-                        { label: 'My Profile', href: '/account' },
-                        { label: 'Orders', href: '/orders' },
-                        { label: 'Wishlist', href: '/wishlist' },
-                        { label: 'Coupons', href: '/account/coupons' },
-                        { label: 'Gift Cards', href: '/account/gift-cards' },
-                        { label: 'Saved Addresses', href: '/account/addresses' },
-                        { label: 'Notifications', href: '#' },
-                      ].map(item => (
-                        <Link key={item.label} href={item.href} onClick={() => setShowAccountMenu(false)}
-                          style={{ display: 'block', padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#212121', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                          {item.label}
-                        </Link>
-                      ))}
+                      {/* User Info Header */}
+                      <div style={{ padding: '16px 16px', borderBottom: '1px solid #e0e0e0', background: 'linear-gradient(135deg, #2874f0 0%, #1a3a7d 100%)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#2874f0' }}>
+                            {user?.name?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>{user?.name}</p>
+                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,.8)', margin: '4px 0 0 0' }}>{user?.email}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Menu Items */}
+                      <div style={{ paddingTop: 8 }}>
+                        {[
+                          { label: 'My Profile', href: '/account', icon: '👤' },
+                          { label: 'Orders', href: '/orders', icon: '📦' },
+                          { label: 'Wishlist', href: '/wishlist', icon: '❤️' },
+                          { label: 'Coupons', href: '/account/coupons', icon: '🏷️' },
+                          { label: 'Gift Cards', href: '/account/gift-cards', icon: '🎁' },
+                          { label: 'Saved Addresses', href: '/account/addresses', icon: '📍' },
+                          { label: 'Saved Cards', href: '/account/saved-cards', icon: '💳' },
+                          { label: 'Notifications', href: '/account/notifications', icon: '🔔' },
+                        ].map((item, idx) => (
+                          <Link key={item.label} href={item.href} onClick={() => setShowAccountMenu(false)}
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 12, 
+                              padding: isMobile ? '14px 16px' : '12px 16px', 
+                              fontSize: isMobile ? 15 : 14, 
+                              color: '#212121', 
+                              textDecoration: 'none', 
+                              borderBottom: idx < 7 ? '1px solid #f5f5f5' : 'none',
+                              transition: 'all .2s ease'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = '#f8f8f8';
+                              e.currentTarget.style.borderLeft = '4px solid #2874f0';
+                              e.currentTarget.style.paddingLeft = isMobile ? '16px' : '12px';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = 'none';
+                              e.currentTarget.style.borderLeft = 'none';
+                              e.currentTarget.style.paddingLeft = isMobile ? '16px' : '16px';
+                            }}>
+                            <span style={{ fontSize: isMobile ? 20 : 18, minWidth: isMobile ? 24 : 20, textAlign: 'center' }}>{item.icon}</span>
+                            <span style={{ fontWeight: 500 }}>{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+
+                      {/* Logout Button */}
                       <button onClick={() => { logout(); setShowAccountMenu(false); }}
-                        style={{ display: 'block', width: '100%', padding: isMobile ? '14px 16px' : '10px 16px', fontSize: isMobile ? 15 : 13, color: '#ff6161', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#fff0f0'}
-                        onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                        Logout
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 12, 
+                          width: '100%', 
+                          padding: isMobile ? '14px 16px' : '12px 16px', 
+                          fontSize: isMobile ? 15 : 14, 
+                          color: '#ff6161', 
+                          background: 'none', 
+                          border: 'none', 
+                          cursor: 'pointer', 
+                          textAlign: 'left',
+                          borderTop: '1px solid #f5f5f5',
+                          marginTop: 4,
+                          transition: 'all .2s ease'
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = '#fff5f5';
+                          e.currentTarget.style.borderLeft = '4px solid #ff6161';
+                          e.currentTarget.style.paddingLeft = isMobile ? '16px' : '12px';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = 'none';
+                          e.currentTarget.style.borderLeft = 'none';
+                          e.currentTarget.style.paddingLeft = isMobile ? '16px' : '16px';
+                        }}>
+                        <span style={{ fontSize: isMobile ? 20 : 18, minWidth: isMobile ? 24 : 20, textAlign: 'center' }}>🚪</span>
+                        <span style={{ fontWeight: 500 }}>Logout</span>
                       </button>
                     </>
                   ) : (

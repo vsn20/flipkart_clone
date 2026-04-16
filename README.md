@@ -6,6 +6,7 @@ A production-ready, feature-rich e-commerce web application that closely replica
 
 ## 📑 Table of Contents
 
+- [Live Demo](#-live-demo)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [Features](#-features)
@@ -14,7 +15,17 @@ A production-ready, feature-rich e-commerce web application that closely replica
 - [Environment Variables](#-environment-variables)
 - [Database Seeding](#-database-seeding)
 - [API Endpoints](#-api-endpoints)
+- [Recent Changes & Improvements](#-recent-changes--improvements)
 - [Assumptions & Design Decisions](#-assumptions--design-decisions)
+
+---
+
+## 🌐 Live Demo
+
+**Production Deployment:**  
+🔗 **Frontend:** https://flipkart-clone-one-omega.vercel.app/
+
+> **Note:** Backend is deployed separately. Make sure both frontend and backend are running for full functionality.
 
 ---
 
@@ -267,6 +278,7 @@ flipkart_clone/
 - **Toast Notifications** — Success/error feedback on all actions
 - **Loading States** — Skeleton loaders and loading indicators
 - **Sticky Elements** — Sticky navbar, sticky action buttons on product pages
+- **Mobile Navbar** — Smooth gradient header with stable scroll detection and consistent emoji display
 
 ### 🗄️ Database Design
 - **15 Models** — User, Product, Category, Subcategory, SubSubcategory, Brand, Color, Cart, CartItem, Order, OrderItem, Wishlist, WishlistItem, Address
@@ -499,6 +511,36 @@ The seed script (`npm run seed`) populates the database with:
 | POST | `/api/addresses` | Add new address |
 | PUT | `/api/addresses/:id` | Update address |
 | DELETE | `/api/addresses/:id` | Delete address |
+
+---
+
+## 🎯 Recent Changes & Improvements
+
+### Mobile UI/UX Enhancements (Latest Build)
+
+**Navbar Scroll Behavior:**
+- ✅ Fixed scroll detection flickering on mobile by increasing hysteresis thresholds
+  - Mobile: **150px down**, **70px up** (80px gap for stability)
+  - Desktop: **140px down**, **40px up** (100px gap for smooth behavior)
+- ✅ Navbar remains **sticky on mobile** during scroll with all elements visible
+- ✅ All emojis and navigation items stay visible when scrolling down on mobile
+
+**Navbar Visual Design:**
+- ✅ Smooth gradient fade header (dark blue #1a237e → light blue → white)
+- ✅ White backgrounds on navbar sections to prevent product content overlap
+- ✅ Prevented flickering when scrolling minimal distances (better UX on smaller screens)
+- ✅ Category emojis remain **large (32px)** consistently during scroll (not shrinking)
+- ✅ Removed duplicate Flipkart logos - only shows once in search bar on desktop when scrolled
+- ✅ Address selector with coin emoji (🪙) always accessible on mobile
+
+**Product Detail Page:**
+- ✅ Fixed missing emoji badges on trust indicators (🔄, 💵, 💬)
+- ✅ Replaced broken image placeholders with actual emojis for Return, Cash on Delivery, and Support
+
+**Code Quality:**
+- All changes maintain existing functionality
+- No breaking changes to backend or API contracts
+- Mobile-first approach in scroll detection logic
 
 ---
 

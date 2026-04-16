@@ -38,28 +38,25 @@ export default function Footer() {
 
           {/* Mail & Registered */}
           <div>
-            <h4 style={{ color: '#878787', fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>MAIL US:</h4>
+            <h4 style={{ color: '#878787', fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>CONTACT US:</h4>
             <p style={{ color: '#fff', fontSize: 13, lineHeight: 1.8 }}>
-              Flipkart Internet Private Limited,<br/>
-              Buildings Alyssa, Begonia &amp;<br/>
-              Cascade Towers, Embassy Tech Village,<br/>
-              Outer Ring Road, Devarabeesanahalli Village,<br/>
-              Bengaluru, 560103,<br/>
-              Karnataka, India<br/>
-              CIN: U51109KA2012PTC066107<br/>
-              Telephone: <a href="tel:044-45614700" style={{ color: '#fff' }}>044-45614700</a>
+              <a href="mailto:sainaman.v23@iiits.in" style={{ color: '#fff', textDecoration: 'none' }}>sainaman.v23@iiits.in</a>
+              <br/>
+              IIIT Sri City,<br/>
+              Chitoor,<br/>
+              Andhra Pradesh, India<br/>
+              PIN: 517588
             </p>
           </div>
 
           <div>
-            <h4 style={{ color: '#878787', fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>REGISTERED OFFICE ADDRESS:</h4>
+            <h4 style={{ color: '#878787', fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>DEVELOPER:</h4>
             <p style={{ color: '#fff', fontSize: 13, lineHeight: 1.8 }}>
-              Flipkart Internet Private Limited,<br/>
-              Buildings Alyssa, Begonia &amp;<br/>
-              Clove Embassy Tech Village,<br/>
-              Outer Ring Road, Devarabeesanahalli Village,<br/>
-              Bengaluru, 560103,<br/>
-              Karnataka, India
+              Vuppala Sai Naman<br/>
+              IIIT Sri City<br/>
+              <a href="https://github.com/vsn20" style={{ color: '#2874f0', textDecoration: 'none' }}>GitHub</a> | 
+              <a href="https://www.linkedin.com/in/vuppala-sainaman/" style={{ color: '#2874f0', textDecoration: 'none' }}> LinkedIn</a><br/>
+              <br/>
             </p>
           </div>
         </div>
