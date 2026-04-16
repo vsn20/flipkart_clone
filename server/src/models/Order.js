@@ -57,7 +57,7 @@ const Order = sequelize.define('Order', {
     defaultValue: 0,
   },
   payment_method: {
-    type: DataTypes.ENUM('COD', 'UPI'),
+    type: DataTypes.ENUM('COD', 'UPI', 'EMI', 'Credit Card', 'Gift Card'),
     defaultValue: 'COD',
   },
   status: {

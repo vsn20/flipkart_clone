@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { User, Cart, Wishlist } = require('../models');
+const sequelize = require('../config/database');
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -19,24 +19,37 @@ exports.register = async (req, res, next) => {
       return res.status(400).json({ message: 'Name, email and password are required.' });
     }
 
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+    // Check if email already exists
+    const checkQuery = `SELECT id FROM users WHERE email = ?`;
+    const [existingUser] = await sequelize.query(checkQuery, { replacements: [email] });
+    
+    if (existingUser.length > 0) {
       return res.status(409).json({ message: 'Email already registered.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      phone: phone || null,
-      auth_provider: 'local',
+    // Insert user
+    const insertUserQuery = `INSERT INTO users (name, email, password, phone, auth_provider, created_at, updated_at) 
+                             VALUES (?, ?, ?, ?, 'local', NOW(), NOW())`;
+    const [userResult] = await sequelize.query(insertUserQuery, {
+      replacements: [name, email, hashedPassword, phone || null]
     });
 
-    // Create cart and wishlist for new user
-    await Cart.create({ user_id: user.id });
-    await Wishlist.create({ user_id: user.id });
+    const userId = userResult;
+
+    // Create cart for new user
+    const createCartQuery = `INSERT INTO carts (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+    await sequelize.query(createCartQuery, { replacements: [userId] });
+
+    // Create wishlist for new user
+    const createWishlistQuery = `INSERT INTO wishlists (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+    await sequelize.query(createWishlistQuery, { replacements: [userId] });
+
+    // Fetch created user
+    const fetchUserQuery = `SELECT id, name, email, phone, super_coins, plus_tier, avatar_url FROM users WHERE id = ?`;
+    const [users] = await sequelize.query(fetchUserQuery, { replacements: [userId] });
+    const user = users[0];
 
     const token = generateToken(user);
 
@@ -67,10 +80,15 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ message: 'Email and password are required.' });
     }
 
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
+    // Find user by email
+    const query = `SELECT * FROM users WHERE email = ?`;
+    const [users] = await sequelize.query(query, { replacements: [email] });
+    
+    if (users.length === 0) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
+
+    const user = users[0];
 
     if (!user.password) {
       return res.status(401).json({ message: 'This account uses Google login. Please sign in with Google.' });
@@ -112,19 +130,37 @@ exports.googleAuth = async (req, res, next) => {
       return res.status(400).json({ message: 'Email is required.' });
     }
 
-    let user = await User.findOne({ where: { email } });
+    // Find user by email
+    const findQuery = `SELECT * FROM users WHERE email = ?`;
+    const [users] = await sequelize.query(findQuery, { replacements: [email] });
 
-    if (!user) {
-      user = await User.create({
-        name: name || email.split('@')[0],
-        email,
-        auth_provider: 'google',
-        avatar_url: avatar_url || null,
+    let user;
+    let userId;
+
+    if (users.length === 0) {
+      // Create new user
+      const insertQuery = `INSERT INTO users (name, email, auth_provider, avatar_url, created_at, updated_at) 
+                           VALUES (?, ?, 'google', ?, NOW(), NOW())`;
+      const [result] = await sequelize.query(insertQuery, {
+        replacements: [name || email.split('@')[0], email, avatar_url || null]
       });
 
-      // Create cart and wishlist
-      await Cart.create({ user_id: user.id });
-      await Wishlist.create({ user_id: user.id });
+      userId = result;
+
+      // Create cart
+      const createCartQuery = `INSERT INTO carts (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+      await sequelize.query(createCartQuery, { replacements: [userId] });
+
+      // Create wishlist
+      const createWishlistQuery = `INSERT INTO wishlists (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+      await sequelize.query(createWishlistQuery, { replacements: [userId] });
+
+      // Fetch created user
+      const fetchQuery = `SELECT * FROM users WHERE id = ?`;
+      const [newUsers] = await sequelize.query(fetchQuery, { replacements: [userId] });
+      user = newUsers[0];
+    } else {
+      user = users[0];
     }
 
     const token = generateToken(user);
@@ -154,28 +190,38 @@ exports.guestLogin = async (req, res, next) => {
   try {
     const guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    const user = await User.create({
-      name: 'Guest User',
-      email: `${guestId}@guest.flipkart.com`,
-      is_guest: true,
-      auth_provider: 'guest',
+    // Insert guest user
+    const insertQuery = `INSERT INTO users (name, email, is_guest, auth_provider, created_at, updated_at) 
+                         VALUES (?, ?, true, 'guest', NOW(), NOW())`;
+    const [userResult] = await sequelize.query(insertQuery, {
+      replacements: ['Guest User', `${guestId}@guest.flipkart.com`]
     });
 
-    // Create cart and wishlist
-    await Cart.create({ user_id: user.id });
-    await Wishlist.create({ user_id: user.id });
+    const userId = userResult;
 
-    const token = generateToken(user);
+    // Create cart for guest user
+    const cartQuery = `INSERT INTO carts (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+    await sequelize.query(cartQuery, { replacements: [userId] });
+
+    // Create wishlist for guest user
+    const wishlistQuery = `INSERT INTO wishlists (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+    await sequelize.query(wishlistQuery, { replacements: [userId] });
+
+    // Fetch guest user
+    const fetchQuery = `SELECT id, name, email, super_coins, plus_tier FROM users WHERE id = ?`;
+    const [user] = await sequelize.query(fetchQuery, { replacements: [userId] });
+
+    const token = generateToken(user[0]);
 
     res.status(201).json({
       message: 'Guest login successful!',
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        super_coins: user.super_coins,
-        plus_tier: user.plus_tier,
+        id: user[0].id,
+        name: user[0].name,
+        email: user[0].email,
+        super_coins: user[0].super_coins,
+        plus_tier: user[0].plus_tier,
         is_guest: true,
       },
     });
@@ -187,15 +233,14 @@ exports.guestLogin = async (req, res, next) => {
 // Get current user
 exports.getMe = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password'] },
-    });
+    const query = `SELECT id, name, email, phone, address, gender, super_coins, plus_tier, total_orders, is_guest, auth_provider, avatar_url, created_at, updated_at FROM users WHERE id = ?`;
+    const [user] = await sequelize.query(query, { replacements: [req.user.id] });
 
-    if (!user) {
+    if (user.length === 0) {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    res.json({ user });
+    res.json({ user: user[0] });
   } catch (error) {
     next(error);
   }
@@ -206,32 +251,52 @@ exports.updateProfile = async (req, res, next) => {
   try {
     const { name, phone, address, gender } = req.body;
 
-    const user = await User.findByPk(req.user.id);
-    if (!user) {
+    // Check if user exists
+    const checkQuery = `SELECT id FROM users WHERE id = ?`;
+    const [userCheck] = await sequelize.query(checkQuery, { replacements: [req.user.id] });
+    
+    if (userCheck.length === 0) {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
-    if (address) user.address = address;
-    if (gender !== undefined) user.gender = gender;
+    // Build dynamic UPDATE query
+    const updateFields = [];
+    const updateValues = [];
 
-    await user.save();
+    if (name !== undefined) {
+      updateFields.push('name = ?');
+      updateValues.push(name);
+    }
+    if (phone !== undefined) {
+      updateFields.push('phone = ?');
+      updateValues.push(phone);
+    }
+    if (address !== undefined) {
+      updateFields.push('address = ?');
+      updateValues.push(address);
+    }
+    if (gender !== undefined) {
+      updateFields.push('gender = ?');
+      updateValues.push(gender);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: 'No fields to update.' });
+    }
+
+    updateFields.push('updated_at = NOW()');
+    updateValues.push(req.user.id);
+
+    const updateQuery = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+    await sequelize.query(updateQuery, { replacements: updateValues });
+
+    // Fetch updated user
+    const fetchQuery = `SELECT id, name, email, phone, address, gender, super_coins, plus_tier, total_orders, avatar_url FROM users WHERE id = ?`;
+    const [updatedUser] = await sequelize.query(fetchQuery, { replacements: [req.user.id] });
 
     res.json({
       message: 'Profile updated successfully.',
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        gender: user.gender,
-        super_coins: user.super_coins,
-        plus_tier: user.plus_tier,
-        total_orders: user.total_orders,
-        avatar_url: user.avatar_url,
-      },
+      user: updatedUser[0],
     });
   } catch (error) {
     next(error);

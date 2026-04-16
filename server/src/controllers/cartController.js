@@ -1,50 +1,70 @@
-const { Cart, CartItem, Product } = require('../models');
+const sequelize = require('../config/database');
 
 // Get user's cart
 exports.getCart = async (req, res, next) => {
   try {
-    let cart = await Cart.findOne({
-      where: { user_id: req.user.id },
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Product,
-              as: 'product',
-              attributes: ['id', 'name', 'price', 'mrp', 'images', 'stock', 'brand', 'discount_percent'],
-            },
-          ],
-        },
-      ],
-    });
-
-    if (!cart) {
-      cart = await Cart.create({ user_id: req.user.id });
-      cart.items = [];
+    // Find or create cart
+    const findCartQuery = `SELECT id FROM carts WHERE user_id = ?`;
+    const [cartResults] = await sequelize.query(findCartQuery, { replacements: [req.user.id] });
+    
+    let cartId;
+    if (cartResults.length === 0) {
+      const createCartQuery = `INSERT INTO carts (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+      const [result] = await sequelize.query(createCartQuery, { replacements: [req.user.id] });
+      cartId = result;
+    } else {
+      cartId = cartResults[0].id;
     }
+
+    // Get cart items with product details
+    const itemsQuery = `
+      SELECT ci.id, ci.cart_id, ci.product_id, ci.quantity, 
+             p.id as product_id, p.name, p.price, p.mrp, p.images, p.stock, p.brand, p.discount_percent
+      FROM cart_items ci
+      LEFT JOIN products p ON ci.product_id = p.id
+      WHERE ci.cart_id = ?
+    `;
+    const [items] = await sequelize.query(itemsQuery, { replacements: [cartId] });
 
     // Calculate totals
     let totalMRP = 0;
     let totalPrice = 0;
-    let totalDiscount = 0;
     let itemCount = 0;
 
-    if (cart.items) {
-      cart.items.forEach((item) => {
+    items.forEach((item) => {
+      if (item.product_id) {
         const qty = item.quantity;
-        totalMRP += parseFloat(item.product.mrp) * qty;
-        totalPrice += parseFloat(item.product.price) * qty;
+        totalMRP += parseFloat(item.mrp) * qty;
+        totalPrice += parseFloat(item.price) * qty;
         itemCount += qty;
-      });
-      totalDiscount = totalMRP - totalPrice;
-    }
+      }
+    });
 
+    const totalDiscount = totalMRP - totalPrice;
     const deliveryCharges = totalPrice >= 500 ? 0 : 40;
 
+    // Format items with product objects
+    const formattedItems = items.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      product: {
+        id: item.product_id,
+        name: item.name,
+        price: item.price,
+        mrp: item.mrp,
+        images: item.images,
+        stock: item.stock,
+        brand: item.brand,
+        discount_percent: item.discount_percent,
+      }
+    }));
+
     res.json({
-      cart,
+      cart: {
+        id: cartId,
+        user_id: req.user.id,
+        items: formattedItems,
+      },
       summary: {
         totalMRP: totalMRP.toFixed(2),
         totalPrice: totalPrice.toFixed(2),
@@ -68,61 +88,80 @@ exports.addToCart = async (req, res, next) => {
       return res.status(400).json({ message: 'Product ID is required.' });
     }
 
-    const product = await Product.findByPk(product_id);
-    if (!product) {
+    // Check product exists and has stock
+    const productQuery = `SELECT id, stock FROM products WHERE id = ?`;
+    const [products] = await sequelize.query(productQuery, { replacements: [product_id] });
+    
+    if (products.length === 0) {
       return res.status(404).json({ message: 'Product not found.' });
     }
 
+    const product = products[0];
     if (product.stock < quantity) {
       return res.status(400).json({ message: 'Insufficient stock.' });
     }
 
-    let cart = await Cart.findOne({ where: { user_id: req.user.id } });
-    if (!cart) {
-      cart = await Cart.create({ user_id: req.user.id });
+    // Find or create cart
+    const findCartQuery = `SELECT id FROM carts WHERE user_id = ?`;
+    const [cartResults] = await sequelize.query(findCartQuery, { replacements: [req.user.id] });
+    
+    let cartId;
+    if (cartResults.length === 0) {
+      const createCartQuery = `INSERT INTO carts (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())`;
+      const [result] = await sequelize.query(createCartQuery, { replacements: [req.user.id] });
+      cartId = result;
+    } else {
+      cartId = cartResults[0].id;
     }
 
     // Check if product already in cart
-    let cartItem = await CartItem.findOne({
-      where: { cart_id: cart.id, product_id },
-    });
+    const checkItemQuery = `SELECT id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ?`;
+    const [existingItems] = await sequelize.query(checkItemQuery, { replacements: [cartId, product_id] });
 
-    if (cartItem) {
-      const newQty = cartItem.quantity + parseInt(quantity);
+    if (existingItems.length > 0) {
+      const newQty = existingItems[0].quantity + parseInt(quantity);
       if (newQty > product.stock) {
         return res.status(400).json({ message: 'Cannot add more. Exceeds available stock.' });
       }
-      cartItem.quantity = newQty;
-      await cartItem.save();
+      const updateQuery = `UPDATE cart_items SET quantity = ?, updated_at = NOW() WHERE id = ?`;
+      await sequelize.query(updateQuery, { replacements: [newQty, existingItems[0].id] });
     } else {
-      cartItem = await CartItem.create({
-        cart_id: cart.id,
-        product_id,
-        quantity: parseInt(quantity),
-      });
+      const insertQuery = `INSERT INTO cart_items (cart_id, product_id, quantity, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())`;
+      await sequelize.query(insertQuery, { replacements: [cartId, product_id, parseInt(quantity)] });
     }
 
     // Return updated cart
-    const updatedCart = await Cart.findOne({
-      where: { user_id: req.user.id },
-      include: [
-        {
-          model: CartItem,
-          as: 'items',
-          include: [
-            {
-              model: Product,
-              as: 'product',
-              attributes: ['id', 'name', 'price', 'mrp', 'images', 'stock', 'brand', 'discount_percent'],
-            },
-          ],
-        },
-      ],
-    });
+    const itemsQuery = `
+      SELECT ci.id, ci.cart_id, ci.product_id, ci.quantity, 
+             p.id, p.name, p.price, p.mrp, p.images, p.stock, p.brand, p.discount_percent
+      FROM cart_items ci
+      LEFT JOIN products p ON ci.product_id = p.id
+      WHERE ci.cart_id = ?
+    `;
+    const [updatedItems] = await sequelize.query(itemsQuery, { replacements: [cartId] });
+
+    const formattedItems = updatedItems.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      product: {
+        id: item.product_id,
+        name: item.name,
+        price: item.price,
+        mrp: item.mrp,
+        images: item.images,
+        stock: item.stock,
+        brand: item.brand,
+        discount_percent: item.discount_percent,
+      }
+    }));
 
     res.status(201).json({
       message: 'Product added to cart!',
-      cart: updatedCart,
+      cart: {
+        id: cartId,
+        user_id: req.user.id,
+        items: formattedItems,
+      },
     });
   } catch (error) {
     next(error);
@@ -139,28 +178,41 @@ exports.updateCartItem = async (req, res, next) => {
       return res.status(400).json({ message: 'Quantity must be at least 1.' });
     }
 
-    const cart = await Cart.findOne({ where: { user_id: req.user.id } });
-    if (!cart) {
+    // Find user's cart
+    const cartQuery = `SELECT id FROM carts WHERE user_id = ?`;
+    const [carts] = await sequelize.query(cartQuery, { replacements: [req.user.id] });
+    
+    if (carts.length === 0) {
       return res.status(404).json({ message: 'Cart not found.' });
     }
 
-    const cartItem = await CartItem.findOne({
-      where: { id: itemId, cart_id: cart.id },
-      include: [{ model: Product, as: 'product' }],
-    });
+    const cartId = carts[0].id;
 
-    if (!cartItem) {
+    // Get cart item with product
+    const itemQuery = `
+      SELECT ci.id, ci.quantity, p.stock
+      FROM cart_items ci
+      LEFT JOIN products p ON ci.product_id = p.id
+      WHERE ci.id = ? AND ci.cart_id = ?
+    `;
+    const [cartItems] = await sequelize.query(itemQuery, { replacements: [itemId, cartId] });
+
+    if (cartItems.length === 0) {
       return res.status(404).json({ message: 'Cart item not found.' });
     }
 
-    if (quantity > cartItem.product.stock) {
+    if (quantity > cartItems[0].stock) {
       return res.status(400).json({ message: 'Exceeds available stock.' });
     }
 
-    cartItem.quantity = parseInt(quantity);
-    await cartItem.save();
+    const updateQuery = `UPDATE cart_items SET quantity = ?, updated_at = NOW() WHERE id = ?`;
+    await sequelize.query(updateQuery, { replacements: [parseInt(quantity), itemId] });
 
-    res.json({ message: 'Cart updated.', cartItem });
+    // Fetch updated item
+    const fetchQuery = `SELECT * FROM cart_items WHERE id = ?`;
+    const [updatedItem] = await sequelize.query(fetchQuery, { replacements: [itemId] });
+
+    res.json({ message: 'Cart updated.', cartItem: updatedItem[0] });
   } catch (error) {
     next(error);
   }
@@ -171,20 +223,26 @@ exports.removeFromCart = async (req, res, next) => {
   try {
     const { itemId } = req.params;
 
-    const cart = await Cart.findOne({ where: { user_id: req.user.id } });
-    if (!cart) {
+    // Find user's cart
+    const cartQuery = `SELECT id FROM carts WHERE user_id = ?`;
+    const [carts] = await sequelize.query(cartQuery, { replacements: [req.user.id] });
+    
+    if (carts.length === 0) {
       return res.status(404).json({ message: 'Cart not found.' });
     }
 
-    const cartItem = await CartItem.findOne({
-      where: { id: itemId, cart_id: cart.id },
-    });
+    const cartId = carts[0].id;
 
-    if (!cartItem) {
+    // Check if item exists in user's cart
+    const itemQuery = `SELECT id FROM cart_items WHERE id = ? AND cart_id = ?`;
+    const [items] = await sequelize.query(itemQuery, { replacements: [itemId, cartId] });
+
+    if (items.length === 0) {
       return res.status(404).json({ message: 'Cart item not found.' });
     }
 
-    await cartItem.destroy();
+    const deleteQuery = `DELETE FROM cart_items WHERE id = ?`;
+    await sequelize.query(deleteQuery, { replacements: [itemId] });
 
     res.json({ message: 'Item removed from cart.' });
   } catch (error) {
@@ -195,12 +253,18 @@ exports.removeFromCart = async (req, res, next) => {
 // Clear entire cart
 exports.clearCart = async (req, res, next) => {
   try {
-    const cart = await Cart.findOne({ where: { user_id: req.user.id } });
-    if (!cart) {
+    // Find user's cart
+    const cartQuery = `SELECT id FROM carts WHERE user_id = ?`;
+    const [carts] = await sequelize.query(cartQuery, { replacements: [req.user.id] });
+    
+    if (carts.length === 0) {
       return res.status(404).json({ message: 'Cart not found.' });
     }
 
-    await CartItem.destroy({ where: { cart_id: cart.id } });
+    const cartId = carts[0].id;
+
+    const deleteQuery = `DELETE FROM cart_items WHERE cart_id = ?`;
+    await sequelize.query(deleteQuery, { replacements: [cartId] });
 
     res.json({ message: 'Cart cleared.' });
   } catch (error) {
@@ -211,15 +275,15 @@ exports.clearCart = async (req, res, next) => {
 // Get cart count (for navbar badge)
 exports.getCartCount = async (req, res, next) => {
   try {
-    const cart = await Cart.findOne({ where: { user_id: req.user.id } });
-    if (!cart) {
-      return res.json({ count: 0 });
-    }
+    const query = `
+      SELECT COALESCE(SUM(ci.quantity), 0) as count
+      FROM carts c
+      LEFT JOIN cart_items ci ON c.id = ci.cart_id
+      WHERE c.user_id = ?
+    `;
+    const [results] = await sequelize.query(query, { replacements: [req.user.id] });
 
-    const items = await CartItem.findAll({ where: { cart_id: cart.id } });
-    const count = items.reduce((sum, item) => sum + item.quantity, 0);
-
-    res.json({ count });
+    res.json({ count: results[0].count });
   } catch (error) {
     next(error);
   }

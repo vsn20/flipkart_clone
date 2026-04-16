@@ -133,9 +133,14 @@ export default function OrderDetailsPage() {
                     <p className="text-[13px] text-[#878787] mb-3">
                       Seller: {primaryItem.product?.brand || order.seller_name || 'PROPELSLEEP'}
                     </p>
-                    <p className="text-[20px] font-[500] text-[#212121]">
-                      {formatPrice(primaryItem.price)}
-                    </p>
+                    <div className="flex items-center gap-3 mb-3">
+                      <p className="text-[20px] font-[500] text-[#212121]">
+                        {formatPrice(primaryItem.price)}
+                      </p>
+                      <span className="text-[13px] text-[#878787] bg-[#f0f0f0] px-2 py-1 rounded">
+                        Qty: {primaryItem.quantity || 1}
+                      </span>
+                    </div>
                   </div>
                   <div className="w-[80px] h-[80px] shrink-0">
                     <img
@@ -183,15 +188,6 @@ export default function OrderDetailsPage() {
                   </button>
                 </div>
 
-                {/* Delay message */}
-                <div className="px-6 pb-5">
-                  <div className="border border-[#d7e8ff] bg-[#f7fbff] rounded-[4px] px-4 py-3">
-                    <p className="text-[13px] text-[#212121] leading-[18px]">
-                      Sorry, your delivery is delayed and we are working with the delivery partner to ensure it reaches at the earliest.
-                    </p>
-                  </div>
-                </div>
-
                 {/* Chat */}
                 <div className="border-t border-[#f0f0f0]">
                   <button className="w-full py-4 flex items-center justify-center gap-2 hover:bg-[#fafafa] transition-colors">
@@ -220,6 +216,14 @@ export default function OrderDetailsPage() {
                       <p className="text-[14px] text-[#212121] leading-[20px] line-clamp-2 mb-2">
                         {item.product_name}
                       </p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[13px] font-[500] text-[#212121]">
+                          {formatPrice(item.price)}
+                        </span>
+                        <span className="text-[12px] text-[#878787] bg-[#f0f0f0] px-1.5 py-0.5 rounded">
+                          Qty: {item.quantity || 1}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1.5">
                         <span className="w-[8px] h-[8px] rounded-full bg-[#26a541] shrink-0"></span>
                         <span className="text-[12px] text-[#878787]">
@@ -238,33 +242,6 @@ export default function OrderDetailsPage() {
                 ))}
               </div>
             )}
-
-            {/* Recent issues */}
-            <div className="bg-white p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[18px] font-[500] text-[#212121]">Recent issues</h2>
-                <button className="text-[#2874f0] text-[14px] font-[500] flex items-center gap-0.5 hover:underline">
-                  View All
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M9 18l6-6-6-6"/>
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="bg-[#f5f7fa] rounded-lg p-4 flex items-center justify-between cursor-pointer hover:bg-[#eef1f5]">
-                <div>
-                  <p className="text-[14px] text-[#212121] mb-1.5">I have an issue with the delivery of my order</p>
-                  <p className="text-[13px]">
-                    <span className="text-[#26a541] font-[500]">Resolved</span>
-                    <span className="text-[#878787] mx-1.5">|</span>
-                    <span className="text-[#878787]">Aug 13, 2024</span>
-                  </p>
-                </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#878787" strokeWidth="2">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </div>
-            </div>
           </div>
 
           {/* RIGHT SIDEBAR */}
@@ -308,38 +285,78 @@ export default function OrderDetailsPage() {
             <div className="bg-white p-5">
               <h2 className="text-[18px] font-[500] text-[#212121] mb-4" style={{fontFamily: 'serif'}}>Price details</h2>
               
-              <div className="border border-[#f0f0f0] rounded-xl overflow-hidden bg-white">
-                <div className="p-4 space-y-3">
-                  <div className="flex justify-between text-[14px]">
-                    <span className="text-[#212121]">Listing price</span>
-                    <span className="text-[#212121]">{formatPrice(listingTotal || 3999)}</span>
+              {primaryItem && (
+                <div className="border border-[#f0f0f0] rounded-xl overflow-hidden bg-white">
+                  <div className="p-4 space-y-4">
+                    {/* Selected product breakdown only */}
+                    {(() => {
+                      const itemSubtotal = primaryItem.price * (primaryItem.quantity || 1);
+                      
+                      return (
+                        <div>
+                          <p className="text-[13px] font-[500] text-[#212121] mb-3 line-clamp-2">
+                            {primaryItem.product_name}
+                          </p>
+                          <div className="space-y-2.5 ml-2">
+                            <div className="flex justify-between text-[13px]">
+                              <span className="text-[#878787]">Price per unit</span>
+                              <span className="text-[#212121]">{formatPrice(primaryItem.price)}</span>
+                            </div>
+                            <div className="flex justify-between text-[13px]">
+                              <span className="text-[#878787]">Quantity</span>
+                              <span className="text-[#212121]">{primaryItem.quantity || 1}</span>
+                            </div>
+                            <div className="flex justify-between text-[13px] font-[500] text-[#212121]">
+                              <span>Subtotal</span>
+                              <span>{formatPrice(itemSubtotal)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
-                  <div className="flex justify-between text-[14px]">
-                    <span className="text-[#212121]">Special price</span>
-                    <span className="text-[#212121]">{formatPrice(totalAmount)}</span>
+                  
+                  <div className="border-t border-dashed border-[#d5d5d5]"></div>
+                  
+                  <div className="p-4 flex justify-between">
+                    <span className="text-[15px] font-[600] text-[#212121]">Total order amount</span>
+                    <span className="text-[15px] font-[600] text-[#212121]">{formatPrice(order.total_amount || totalAmount)}</span>
                   </div>
-                </div>
-                
-                <div className="border-t border-dashed border-[#d5d5d5] mx-4"></div>
-                
-                <div className="p-4 flex justify-between">
-                  <span className="text-[15px] font-[600] text-[#212121]">Total amount</span>
-                  <span className="text-[15px] font-[600] text-[#212121]">{formatPrice(totalAmount)}</span>
-                </div>
 
-                <div className="px-4 pb-4">
-                  <div className="bg-[#fafafa] border border-[#f0f0f0] rounded-lg px-3.5 py-2.5 flex items-center justify-between">
-                    <span className="text-[13px] text-[#878787]">Paid By</span>
-                    <div className="flex items-center gap-1.5">
-                      <svg width="20" height="14" viewBox="0 0 24 16" fill="none" stroke="#5f6368" strokeWidth="1.3">
-                        <rect x="1" y="2" width="22" height="12" rx="2"/>
-                        <line x1="1" y1="6" x2="23" y2="6"/>
-                      </svg>
-                      <span className="text-[13px] text-[#5f6368]">Credit Card</span>
+                  <div className="px-4 pb-4">
+                    <div className="bg-[#fafafa] border border-[#f0f0f0] rounded-lg px-3.5 py-2.5 flex items-center justify-between">
+                      <span className="text-[13px] text-[#878787]">Paid By</span>
+                      <div className="flex items-center gap-1.5">
+                        {order.payment_method === 'COD' || order.payment_method === 'cash_on_delivery' ? (
+                          <>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="1.3">
+                              <circle cx="12" cy="12" r="10"/>
+                              <path d="M9 12l2 2 4-4"/>
+                            </svg>
+                            <span className="text-[13px] text-[#5f6368]">Cash on Delivery</span>
+                          </>
+                        ) : order.payment_method === 'UPI' ? (
+                          <>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="1.3">
+                              <rect x="2" y="5" width="20" height="14" rx="2"/>
+                              <path d="M2 9h20"/>
+                            </svg>
+                            <span className="text-[13px] text-[#5f6368]">UPI</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="20" height="14" viewBox="0 0 24 16" fill="none" stroke="#5f6368" strokeWidth="1.3">
+                              <rect x="1" y="2" width="22" height="12" rx="2"/>
+                              <line x1="1" y1="6" x2="23" y2="6"/>
+                            </svg>
+                            <span className="text-[13px] text-[#5f6368]">{order.payment_method || 'Credit Card'}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
               </div>
+              )}
 
               <button
                 onClick={handleDownloadInvoice}

@@ -1,12 +1,10 @@
-const { Address } = require('../models');
+const sequelize = require('../config/database');
 
 // Get all addresses for user
 exports.getAddresses = async (req, res, next) => {
   try {
-    const addresses = await Address.findAll({
-      where: { user_id: req.user.id },
-      order: [['is_default', 'DESC'], ['createdAt', 'DESC']],
-    });
+    const query = `SELECT * FROM addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC`;
+    const [addresses] = await sequelize.query(query, { replacements: [req.user.id] });
     res.json({ addresses });
   } catch (error) {
     next(error);
@@ -22,24 +20,23 @@ exports.addAddress = async (req, res, next) => {
       return res.status(400).json({ message: 'Name, phone, pincode, address, city, and state are required.' });
     }
 
-    // If this is the first address, make it default
-    const existingCount = await Address.count({ where: { user_id: req.user.id } });
+    // Check if this is the first address for user
+    const countQuery = `SELECT COUNT(*) as count FROM addresses WHERE user_id = ?`;
+    const [countResult] = await sequelize.query(countQuery, { replacements: [req.user.id] });
+    const isFirstAddress = countResult[0].count === 0;
 
-    const newAddress = await Address.create({
-      user_id: req.user.id,
-      name,
-      phone,
-      pincode,
-      locality: locality || null,
-      address,
-      city,
-      state,
-      landmark: landmark || null,
-      address_type: address_type || 'home',
-      is_default: existingCount === 0,
+    // Insert new address
+    const insertQuery = `INSERT INTO addresses (user_id, name, phone, pincode, locality, address, city, state, landmark, address_type, is_default, created_at, updated_at) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
+    const [result] = await sequelize.query(insertQuery, {
+      replacements: [req.user.id, name, phone, pincode, locality || null, address, city, state, landmark || null, address_type || 'home', isFirstAddress]
     });
 
-    res.status(201).json({ message: 'Address added successfully.', address: newAddress });
+    // Fetch the newly created address
+    const fetchQuery = `SELECT * FROM addresses WHERE id = ?`;
+    const [newAddress] = await sequelize.query(fetchQuery, { replacements: [result] });
+
+    res.status(201).json({ message: 'Address added successfully.', address: newAddress[0] });
   } catch (error) {
     next(error);
   }
@@ -49,27 +46,46 @@ exports.addAddress = async (req, res, next) => {
 exports.updateAddress = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const addr = await Address.findOne({ where: { id, user_id: req.user.id } });
+    
+    // Check if address exists and belongs to user
+    const checkQuery = `SELECT * FROM addresses WHERE id = ? AND user_id = ?`;
+    const [existingAddr] = await sequelize.query(checkQuery, { replacements: [id, req.user.id] });
 
-    if (!addr) {
+    if (existingAddr.length === 0) {
       return res.status(404).json({ message: 'Address not found.' });
     }
 
     const { name, phone, pincode, locality, address, city, state, landmark, address_type } = req.body;
+    
+    // Build dynamic UPDATE query
+    const updates = [];
+    const values = [];
+    
+    if (name) { updates.push('name = ?'); values.push(name); }
+    if (phone) { updates.push('phone = ?'); values.push(phone); }
+    if (pincode) { updates.push('pincode = ?'); values.push(pincode); }
+    if (locality !== undefined) { updates.push('locality = ?'); values.push(locality || null); }
+    if (address) { updates.push('address = ?'); values.push(address); }
+    if (city) { updates.push('city = ?'); values.push(city); }
+    if (state) { updates.push('state = ?'); values.push(state); }
+    if (landmark !== undefined) { updates.push('landmark = ?'); values.push(landmark || null); }
+    if (address_type) { updates.push('address_type = ?'); values.push(address_type); }
 
-    if (name) addr.name = name;
-    if (phone) addr.phone = phone;
-    if (pincode) addr.pincode = pincode;
-    if (locality !== undefined) addr.locality = locality;
-    if (address) addr.address = address;
-    if (city) addr.city = city;
-    if (state) addr.state = state;
-    if (landmark !== undefined) addr.landmark = landmark;
-    if (address_type) addr.address_type = address_type;
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update.' });
+    }
 
-    await addr.save();
+    updates.push('updated_at = NOW()');
+    values.push(id, req.user.id);
 
-    res.json({ message: 'Address updated successfully.', address: addr });
+    const updateQuery = `UPDATE addresses SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`;
+    await sequelize.query(updateQuery, { replacements: values });
+
+    // Fetch updated address
+    const fetchQuery = `SELECT * FROM addresses WHERE id = ?`;
+    const [updatedAddr] = await sequelize.query(fetchQuery, { replacements: [id] });
+
+    res.json({ message: 'Address updated successfully.', address: updatedAddr[0] });
   } catch (error) {
     next(error);
   }
@@ -79,24 +95,29 @@ exports.updateAddress = async (req, res, next) => {
 exports.deleteAddress = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const addr = await Address.findOne({ where: { id, user_id: req.user.id } });
+    
+    // Get address to check if it's default
+    const checkQuery = `SELECT is_default FROM addresses WHERE id = ? AND user_id = ?`;
+    const [addrResult] = await sequelize.query(checkQuery, { replacements: [id, req.user.id] });
 
-    if (!addr) {
+    if (addrResult.length === 0) {
       return res.status(404).json({ message: 'Address not found.' });
     }
 
-    const wasDefault = addr.is_default;
-    await addr.destroy();
+    const wasDefault = addrResult[0].is_default;
+
+    // Delete the address
+    const deleteQuery = `DELETE FROM addresses WHERE id = ? AND user_id = ?`;
+    await sequelize.query(deleteQuery, { replacements: [id, req.user.id] });
 
     // If deleted address was default, set the next one as default
     if (wasDefault) {
-      const nextAddr = await Address.findOne({
-        where: { user_id: req.user.id },
-        order: [['createdAt', 'DESC']],
-      });
-      if (nextAddr) {
-        nextAddr.is_default = true;
-        await nextAddr.save();
+      const nextQuery = `SELECT id FROM addresses WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`;
+      const [nextAddr] = await sequelize.query(nextQuery, { replacements: [req.user.id] });
+      
+      if (nextAddr.length > 0) {
+        const setDefaultQuery = `UPDATE addresses SET is_default = 1 WHERE id = ?`;
+        await sequelize.query(setDefaultQuery, { replacements: [nextAddr[0].id] });
       }
     }
 
@@ -112,18 +133,26 @@ exports.setDefault = async (req, res, next) => {
     const { id } = req.params;
 
     // Clear all defaults for this user
-    await Address.update({ is_default: false }, { where: { user_id: req.user.id } });
+    const clearQuery = `UPDATE addresses SET is_default = 0 WHERE user_id = ?`;
+    await sequelize.query(clearQuery, { replacements: [req.user.id] });
 
-    // Set the chosen address as default
-    const addr = await Address.findOne({ where: { id, user_id: req.user.id } });
-    if (!addr) {
+    // Check if address exists for user
+    const checkQuery = `SELECT id FROM addresses WHERE id = ? AND user_id = ?`;
+    const [addrResult] = await sequelize.query(checkQuery, { replacements: [id, req.user.id] });
+    
+    if (addrResult.length === 0) {
       return res.status(404).json({ message: 'Address not found.' });
     }
 
-    addr.is_default = true;
-    await addr.save();
+// Set the chosen address as default
+    const setDefaultQuery = `UPDATE addresses SET is_default = 1 WHERE id = ?`;
+    await sequelize.query(setDefaultQuery, { replacements: [id] });
 
-    res.json({ message: 'Default address updated.', address: addr });
+    // Fetch updated address
+    const fetchQuery = `SELECT * FROM addresses WHERE id = ?`;
+    const [updatedAddr] = await sequelize.query(fetchQuery, { replacements: [id] });
+
+    res.json({ message: 'Default address updated.', address: updatedAddr[0] });
   } catch (error) {
     next(error);
   }

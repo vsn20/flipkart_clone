@@ -11,7 +11,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const { cart, fetchCart, updateQuantity } = useCart();
+  const { cart, fetchCart, updateQuantity, clearCart } = useCart();
 
   const [step, setStep] = useState(2); // 2=summary, 3=payment
   const [placing, setPlacing] = useState(false);
@@ -113,6 +113,12 @@ export default function CheckoutPage() {
           quantity: Number(directItem.quantity) || 1,
         })
         : await ordersAPI.place(payload);
+      
+      // Clear cart after successful order
+      if (!isDirectCheckout) {
+        await clearCart();
+      }
+      
       toast.success('Order placed!');
       router.push(`/order-confirmation/${res.data.order.id}`);
     } catch (e) { toast.error('Failed'); } finally { setPlacing(false); }

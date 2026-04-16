@@ -81,6 +81,7 @@ export default function CartPage() {
   const total = parseFloat(summary?.totalAmount) || 0;
   const savings = discount;
   const platformFee = 7;
+  const deliveryCharges = total >= 500 ? 0 : 40;
 
   return (
     <div style={{ background: '#f1f3f6', minHeight: '80vh', padding: '12px 0' }}>
@@ -196,8 +197,12 @@ export default function CartPage() {
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14, paddingLeft: 12 }}>
     <span style={{ color: '#878787', borderBottom: '1px dashed #a0a0a0', paddingBottom: 2 }}>Platform Fee</span>
     <span>₹{platformFee}</span>
-  </div>
-                <div style={{ borderTop: '1px dashed #d0d0d0', margin: '12px 0' }}></div>
+  </div>                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14, paddingLeft: 12 }}>
+    <span style={{ color: '#878787', borderBottom: '1px dashed #a0a0a0', paddingBottom: 2 }}>Delivery Charges</span>
+    <span style={{ color: deliveryCharges === 0 ? '#388e3c' : '#212121' }}>
+      {deliveryCharges === 0 ? 'FREE' : `₹${deliveryCharges}`}
+    </span>
+  </div>                <div style={{ borderTop: '1px dashed #d0d0d0', margin: '12px 0' }}></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
                   <span style={{ color: '#212121', display: 'flex', alignItems: 'center', gap: 4 }}>Discounts <span style={{ fontSize: 10 }}>▲</span></span>
                   <span></span>
@@ -209,7 +214,7 @@ export default function CartPage() {
                 <div style={{ borderTop: '1px solid #d0d0d0', margin: '12px 0' }}></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700 }}>
                   <span>Total Amount</span>
-                  <span>{formatPrice(total + platformFee)}</span>
+                  <span>{formatPrice(total + platformFee + deliveryCharges)}</span>
                 </div>
               </div>
 

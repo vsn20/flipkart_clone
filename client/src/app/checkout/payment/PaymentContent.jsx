@@ -12,7 +12,7 @@ export default function PaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const { cart, fetchCart } = useCart();
+  const { cart, fetchCart, clearCart } = useCart();
 
   const [placing, setPlacing] = useState(false);
   const [addresses, setAddresses] = useState([]);
@@ -139,16 +139,22 @@ export default function PaymentPage() {
             quantity: Number(directItem.quantity) || 1,
           })
         : await ordersAPI.place(payload);
+      
+      // Clear cart after successful order
+      if (!isDirectCheckout) {
+        await clearCart();
+      }
+      
       toast.success('Payment successful! Order placed.');
       router.push(`/order-confirmation/${res.data.order.id}`);
     } catch (e) { toast.error('Payment failed. Try again.'); } finally { setPlacing(false); }
   };
 
   const paymentOptions = [
-    { key: 'card', icon: '💳', label: 'Credit / Debit / ATM Card', sub: 'Add and secure cards as per RBI guidelines', extra: 'Get upto 5% cashback · 2 offers available', method: 'UPI' },
-    { key: 'emi', icon: '📋', label: 'EMI', sub: 'Credit Card EMI', method: 'UPI' },
+    { key: 'card', icon: '💳', label: 'Credit / Debit / ATM Card', sub: 'Add and secure cards as per RBI guidelines', extra: 'Get upto 5% cashback · 2 offers available', method: 'Credit Card' },
+    { key: 'emi', icon: '📋', label: 'EMI', sub: 'Credit Card EMI', method: 'EMI' },
     { key: 'cod', icon: '📦', label: 'Cash on Delivery', sub: null, method: 'COD' },
-    { key: 'gift', icon: '🎁', label: 'Have a Flipkart Gift Card?', sub: null, method: 'COD' },
+    { key: 'gift', icon: '🎁', label: 'Have a Flipkart Gift Card?', sub: null, method: 'Gift Card' },
     { key: 'upi', icon: '📱', label: 'UPI', sub: 'Unavailable', disabled: true, method: 'UPI' },
   ];
 
