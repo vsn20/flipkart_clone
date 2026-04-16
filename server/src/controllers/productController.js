@@ -204,22 +204,14 @@ exports.getProductById = async (req, res, next) => {
     const product = products[0];
     const subcategoryId = product.sub_id || product.cat_id;
 
-    // Get similar products
+    // Get similar products (same category AND subcategory, but not necessarily same sub-subcategory)
     let similarQuery = `
       SELECT * FROM products
       WHERE id != ? AND stock > 0
+      AND category_id = ? AND subcategory_id = ?
+      ORDER BY rating DESC LIMIT 8
     `;
-    const similarParams = [id];
-
-    if (product.sub_id) {
-      similarQuery += ` AND subcategory_id = ?`;
-      similarParams.push(product.sub_id);
-    } else {
-      similarQuery += ` AND category_id = ?`;
-      similarParams.push(product.cat_id);
-    }
-
-    similarQuery += ` ORDER BY rating DESC LIMIT 8`;
+    const similarParams = [id, product.cat_id, product.sub_id];
 
     const [similarProducts] = await sequelize.query(similarQuery, { replacements: similarParams });
 

@@ -42,7 +42,18 @@ function CompareContent() {
     }
     try {
       const res = await productsAPI.getById(productId);
-      setSlots(prev => { const n = [...prev]; n[slotIndex] = res.data.product; return n; });
+      const selectedProduct = res.data.product;
+      const baseProduct = slots[0];
+      
+      // Validate: same category AND subcategory
+      if (baseProduct && 
+          (selectedProduct.category?.id !== baseProduct.category?.id || 
+           selectedProduct.subcategory?.id !== baseProduct.subcategory?.id)) {
+        alert('You can only compare products from the same category and subcategory');
+        return;
+      }
+      
+      setSlots(prev => { const n = [...prev]; n[slotIndex] = selectedProduct; return n; });
     } catch {}
   };
 
