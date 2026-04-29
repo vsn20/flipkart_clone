@@ -1,10 +1,13 @@
 const nodemailer = require('nodemailer');
 
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 // Create reusable transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT) || 587,
+     family: 4,
     secure: false,
     auth: {
       user: process.env.SMTP_USER,
